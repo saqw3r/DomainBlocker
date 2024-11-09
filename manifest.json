@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Domain Blocker",
+  "version": "1.0",
+  "description": "Blocks all main frame requests to the specified list of domains.",
+  "permissions": [
+    "declarativeNetRequest", 
+    "declarativeNetRequestFeedback",
+    "declarativeNetRequestWithHostAccess", 
+    "storage", 
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules_1.json"
+      }
+    ]
+  },
+  "host_permissions": [
+    "https://developer.chrome.com/*"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  
+  "content_security_policy": { 
+    "extension_pages": "script-src 'self'; object-src 'self';" 
+  }
+}
