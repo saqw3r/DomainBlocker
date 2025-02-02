@@ -23,7 +23,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["rules_1.json"],
+      "resources": ["blocked.html"],
       "matches": ["<all_urls>"]
     }
   ],
