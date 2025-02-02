@@ -21,17 +21,15 @@
       "128": "icon128.png"
     }
   },
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "ruleset_1",
-        "enabled": true,
-        "path": "rules_1.json"
-      }
-    ]
-  },
+  "web_accessible_resources": [
+    {
+      "resources": ["rules_1.json"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  
   "host_permissions": [
-    "https://developer.chrome.com/*"
+    "<all_urls>"
   ],
   "icons": {
     "16": "icon16.png",

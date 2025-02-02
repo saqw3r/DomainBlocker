@@ -117,52 +117,106 @@
 //   chrome.tabs.update(info.tabId, { url: chrome.runtime.getURL("blocked.html") });
 // }
 
-let isBlockerActive = false;
+// let rules = [];
+// let isBlockerActive = false;
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'turnOnBlocker') {
-    activateBlocker();
-  } else if (request.action === 'turnOffBlocker') {
-    deactivateBlocker();
-  }
+// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+//   if (request.action === 'turnOnBlocker') {
+//     activateBlocker();
+//   } else if (request.action === 'turnOffBlocker') {
+//     deactivateBlocker();
+//   }
+// });
+
+// function activateBlocker() {
+//   if (!isBlockerActive) {
+//     chrome.declarativeNetRequest.updateEnabledRulesets(
+//       { enableRulesetIds: ['ruleset_1'] },
+//       () => {
+//         if (chrome.runtime.lastError) {
+//           console.error('Error enabling ruleset:', chrome.runtime.lastError);
+//         } else {
+//           console.log('Ruleset enabled');
+//           isBlockerActive = true;
+//         }
+//       }
+//     );
+//   }
+// }
+
+// function deactivateBlocker() {
+//   if (isBlockerActive) {
+//     chrome.declarativeNetRequest.updateEnabledRulesets(
+//       { disableRulesetIds: ['ruleset_1'] },
+//       () => {
+//         if (chrome.runtime.lastError) {
+//           console.error('Error disabling ruleset:', chrome.runtime.lastError);
+//         } else {
+//           console.log('Ruleset disabled');
+//           isBlockerActive = false;
+//         }
+//       }
+//     );
+//   }
+// }
+
+// function onRuleMatched(info) {
+//   console.log('Rule matched:', info);
+//   chrome.tabs.update(info.tabId, { url: chrome.runtime.getURL("blocked.html") });
+// }
+
+// Load the rules from rules_1.json
+let rules = [];
+let isBlockerOn = false;
+
+// Function to enable the blocker
+function enableBlocker() {
+    if (!isBlockerOn) {
+        // Load rules from rules_1.json
+        fetch(chrome.runtime.getURL('rules_1.json'))
+            .then(response => response.json())
+            .then(data => {
+                rules = data;
+                chrome.declarativeNetRequest.updateDynamicRules({
+                    addRules: rules,
+                    removeRuleIds: rules.map(rule => rule.id)
+                }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error enabling blocker:', chrome.runtime.lastError);
+                    } else {
+                        isBlockerOn = true;
+                        console.log('Blocker enabled.');
+                    }
+                });
+            })
+            .catch(error => console.error('Error loading rules:', error));
+    }
+}
+
+// Function to disable the blocker
+function disableBlocker() {
+    if (isBlockerOn) {
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: rules.map(rule => rule.id)
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error disabling blocker:', chrome.runtime.lastError);
+            } else {
+                isBlockerOn = false;
+                console.log('Blocker disabled.');
+            }
+        });
+    }
+}
+
+// Listen for messages from the popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'turnOnBlocker') {
+        enableBlocker();
+    } else if (message.action === 'turnOffBlocker') {
+        disableBlocker();
+    }
 });
-
-function activateBlocker() {
-  if (!isBlockerActive) {
-    chrome.declarativeNetRequest.updateEnabledRulesets(
-      { enableRulesetIds: ['ruleset_1'] },
-      () => {
-        if (chrome.runtime.lastError) {
-          console.error('Error enabling ruleset:', chrome.runtime.lastError);
-        } else {
-          console.log('Ruleset enabled');
-          isBlockerActive = true;
-        }
-      }
-    );
-  }
-}
-
-function deactivateBlocker() {
-  if (isBlockerActive) {
-    chrome.declarativeNetRequest.updateEnabledRulesets(
-      { disableRulesetIds: ['ruleset_1'] },
-      () => {
-        if (chrome.runtime.lastError) {
-          console.error('Error disabling ruleset:', chrome.runtime.lastError);
-        } else {
-          console.log('Ruleset disabled');
-          isBlockerActive = false;
-        }
-      }
-    );
-  }
-}
-
-function onRuleMatched(info) {
-  console.log('Rule matched:', info);
-  chrome.tabs.update(info.tabId, { url: chrome.runtime.getURL("blocked.html") });
-}
 
 
 
