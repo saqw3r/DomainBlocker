@@ -55,12 +55,18 @@
       background-color: #f44336;
       color: white;
     }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <h2>Site Blocker Controls</h2> 
-  <button id="onButton">Turn On Blocker</button>
-  <button id="offButton">Turn Off Blocker</button>
+  <h2>Site Blocker Controls</h2>
+  <div class="button-container">
+    <button id="onButton">Turn On Blocker</button>
+    <button id="offButton" class="hidden">Turn Off Blocker</button>
+  </div>
 
   <script src="popup.js"></script>
 </body>
