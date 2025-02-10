@@ -130,3 +130,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     return true; // Required for async sendResponse
 });
+
+clearExistingRules(); // Clear existing rules on startup
