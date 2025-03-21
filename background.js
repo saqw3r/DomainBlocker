@@ -112,13 +112,28 @@ function clearExistingRules() {
     });
 }
 
+// Function to restore blocker state on startup
+function restoreBlockerState() {
+    chrome.storage.local.get('blockerState', (data) => {
+        if (data.blockerState === 'on') {
+            isBlockerOn = true;
+            enableBlocker();
+        } else {
+            isBlockerOn = false;
+            disableBlocker();
+        }
+    });
+}
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'turnOnBlocker') {
         enableBlocker();
+        chrome.storage.local.set({ blockerState: 'on' });
         sendResponse({ success: true });
     } else if (message.action === 'turnOffBlocker') {
         disableBlocker();
+        chrome.storage.local.set({ blockerState: 'off' });
         sendResponse({ success: true });
     } else if (message.action === 'getBlockerState') {
         sendResponse({ state: isBlockerOn ? 'on' : 'off' });
@@ -131,4 +146,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Required for async sendResponse
 });
 
-clearExistingRules(); // Clear existing rules on startup
+// Restore blocker state on startup
+chrome.runtime.onStartup.addListener(restoreBlockerState);
+
+// Clear existing rules on startup
+clearExistingRules();
+restoreBlockerState();
