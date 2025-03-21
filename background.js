@@ -149,6 +149,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Restore blocker state on startup
 chrome.runtime.onStartup.addListener(restoreBlockerState);
 
+// Restore blocker state when the system becomes active
+chrome.idle.onStateChanged.addListener((newState) => {
+    if (newState === 'active') {
+        restoreBlockerState();
+    }
+});
+
 // Clear existing rules on startup
 clearExistingRules();
 restoreBlockerState();
