@@ -21,7 +21,7 @@ function createRules(domains) {
         action: {
             type: "redirect",
             redirect: {
-                extensionPath: "/blocked.html"
+                extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
             }
         },
         condition: {
@@ -158,4 +158,4 @@ chrome.idle.onStateChanged.addListener((newState) => {
 
 // Clear existing rules on startup
 clearExistingRules();
-restoreBlockerState();
+//restoreBlockerState();
