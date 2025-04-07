@@ -13,6 +13,54 @@ function generateUniqueRuleId() {
     return nextRuleId++;
 }
 
+// Function to enable the blocker
+function enableBlocker() {
+    if (!isBlockerOn) {
+        chrome.storage.local.set({ blockerState: 'on' });
+        applyRules();
+    }
+}
+
+// Function to disable the blocker
+function disableBlocker() {
+    if (isBlockerOn) {
+        chrome.storage.local.set({ blockerState: 'off' });
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: currentRuleIds // Remove all active rules
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error disabling blocker:', chrome.runtime.lastError);
+            } else {
+                isBlockerOn = false;
+                currentRuleIds = []; // Clear stored rule IDs
+                console.log('Blocker disabled.');
+            }
+        });
+    }
+}
+
+function applyRules() {
+    chrome.storage.local.get('blacklistedDomains', (data) => {
+        const domains = data.blacklistedDomains || [];
+        const rules = createRules(domains);
+
+        console.log("Enabling blocker with rules:", rules); // Log the rules being added
+
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: currentRuleIds, // Remove existing rules
+            addRules: rules // Add new rules
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error enabling blocker:', chrome.runtime.lastError);
+            } else {
+                isBlockerOn = true;
+                currentRuleIds = rules.map(rule => rule.id); // Store new rule IDs
+                console.log('Blocker enabled.');
+            }
+        });
+    });
+}
+
 // Function to create rules for a list of domains
 function createRules(domains) {
     return domains.map(domain => ({
@@ -29,48 +77,6 @@ function createRules(domains) {
             resourceTypes: ["main_frame"]
         }
     }));
-}
-
-// Function to enable the blocker
-function enableBlocker() {
-    if (!isBlockerOn) {
-        chrome.storage.local.get('blacklistedDomains', (data) => {
-            const domains = data.blacklistedDomains || [];
-            const rules = createRules(domains);
-
-            console.log("Enabling blocker with rules:", rules); // Log the rules being added
-
-            chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: currentRuleIds, // Remove existing rules
-                addRules: rules // Add new rules
-            }, () => {
-                if (chrome.runtime.lastError) {
-                    console.error('Error enabling blocker:', chrome.runtime.lastError);
-                } else {
-                    isBlockerOn = true;
-                    currentRuleIds = rules.map(rule => rule.id); // Store new rule IDs
-                    console.log('Blocker enabled.');
-                }
-            });
-        });
-    }
-}
-
-// Function to disable the blocker
-function disableBlocker() {
-    if (isBlockerOn) {
-        chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: currentRuleIds // Remove all active rules
-        }, () => {
-            if (chrome.runtime.lastError) {
-                console.error('Error disabling blocker:', chrome.runtime.lastError);
-            } else {
-                isBlockerOn = false;
-                currentRuleIds = []; // Clear stored rule IDs
-                console.log('Blocker disabled.');
-            }
-        });
-    }
 }
 
 // Function to update blocker rules
@@ -129,11 +135,9 @@ function restoreBlockerState() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'turnOnBlocker') {
         enableBlocker();
-        chrome.storage.local.set({ blockerState: 'on' });
         sendResponse({ success: true });
     } else if (message.action === 'turnOffBlocker') {
         disableBlocker();
-        chrome.storage.local.set({ blockerState: 'off' });
         sendResponse({ success: true });
     } else if (message.action === 'getBlockerState') {
         sendResponse({ state: isBlockerOn ? 'on' : 'off' });
