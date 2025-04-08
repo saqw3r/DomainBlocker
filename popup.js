@@ -1,3 +1,11 @@
+// Add this at the beginning of the file
+document.addEventListener('DOMContentLoaded', () => {
+    // Get the current blocker state from the background script
+    chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
+        toggleButtons(response.state);
+    });
+});
+
 // Function to toggle button visibility
 function toggleButtons(blockerState) {
     const onButton = document.getElementById('onButton');
@@ -66,11 +74,6 @@ function updateBlockerRules(domains) {
 document.getElementById('editButton').addEventListener('click', toggleEditMode);
 document.getElementById('saveButton').addEventListener('click', saveDomainList);
 document.getElementById('cancelButton').addEventListener('click', toggleEditMode);
-
-// Get the current blocker state from the background script
-chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
-    toggleButtons(response.state); // Set initial button visibility
-});
 
 // Turn on the blocker
 document.getElementById('onButton').addEventListener('click', function() {

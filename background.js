@@ -123,7 +123,7 @@ function restoreBlockerState() {
     chrome.storage.local.get('blockerState', (data) => {
         if (data.blockerState === 'on') {
             isBlockerOn = true;
-            enableBlocker();
+            applyRules(); // Apply rules when restoring state
         } else {
             isBlockerOn = false;
             disableBlocker();
@@ -160,6 +160,13 @@ chrome.idle.onStateChanged.addListener((newState) => {
     }
 });
 
+// Listen for system state changes
+chrome.system.display.onDisplayChanged.addListener(() => {
+    restoreBlockerState();
+});
+
+// Initialize state when extension is installed or updated
+chrome.runtime.onInstalled.addListener(restoreBlockerState);
+
 // Clear existing rules on startup
 clearExistingRules();
-//restoreBlockerState();
