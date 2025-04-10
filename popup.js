@@ -1,13 +1,25 @@
 // Add this at the beginning of the file
 document.addEventListener('DOMContentLoaded', () => {
-    // Get the current blocker state from the background script
-    chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
-        toggleButtons(response.state);
+    // First get the state from storage
+    chrome.storage.local.get('blockerState', (data) => {
+        console.log('Initial state from storage:', data.blockerState);
+        if (data.blockerState) {
+            toggleButtons(data.blockerState);
+        }
+        
+        // Then verify with background script
+        chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
+            console.log('State from background:', response.state);
+            if (response && response.state) {
+                toggleButtons(response.state);
+            }
+        });
     });
 });
 
 // Function to toggle button visibility
 function toggleButtons(blockerState) {
+    console.log('Toggling buttons with state:', blockerState);
     const onButton = document.getElementById('onButton');
     const offButton = document.getElementById('offButton');
 

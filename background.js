@@ -4,21 +4,24 @@ function logExistingRules() {
   });
 }
 
+// Update the global variables
 let isBlockerOn = false;
 let currentRuleIds = [];
 let nextRuleId = 1; // Counter for generating unique rule IDs
+let highestRuleId = 0; // Track the highest rule ID
 
-// Function to generate unique rule IDs
+// Update the generateUniqueRuleId function
 function generateUniqueRuleId() {
+    highestRuleId = Math.max(highestRuleId, nextRuleId);
     return nextRuleId++;
 }
 
 // Function to enable the blocker
 function enableBlocker() {
-    if (!isBlockerOn) {
-        chrome.storage.local.set({ blockerState: 'on' });
+    chrome.storage.local.set({ blockerState: 'on' }, () => {
+        isBlockerOn = true;
         applyRules();
-    }
+    });
 }
 
 // Function to disable the blocker
@@ -39,44 +42,52 @@ function disableBlocker() {
     }
 }
 
+// Update the applyRules function
 function applyRules() {
-    chrome.storage.local.get('blacklistedDomains', (data) => {
+    chrome.storage.local.get(['blacklistedDomains', 'blockerState'], (data) => {
         const domains = data.blacklistedDomains || [];
-        const rules = createRules(domains);
+        if (data.blockerState === 'on') {
+            const rules = createRules(domains);
+            console.log("Enabling blocker with rules:", rules);
 
-        console.log("Enabling blocker with rules:", rules); // Log the rules being added
-
-        chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: currentRuleIds, // Remove existing rules
-            addRules: rules // Add new rules
-        }, () => {
-            if (chrome.runtime.lastError) {
-                console.error('Error enabling blocker:', chrome.runtime.lastError);
-            } else {
-                isBlockerOn = true;
-                currentRuleIds = rules.map(rule => rule.id); // Store new rule IDs
-                console.log('Blocker enabled.');
-            }
-        });
+            chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: currentRuleIds,
+                addRules: rules
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error enabling blocker:', chrome.runtime.lastError);
+                    isBlockerOn = false;
+                    chrome.storage.local.set({ blockerState: 'off' });
+                } else {
+                    isBlockerOn = true;
+                    currentRuleIds = rules.map(rule => rule.id);
+                    console.log('Blocker enabled with rules:', rules);
+                }
+            });
+        }
     });
 }
 
 // Function to create rules for a list of domains
 function createRules(domains) {
-    return domains.map(domain => ({
-        id: generateUniqueRuleId(),
-        priority: 1,
-        action: {
-            type: "redirect",
-            redirect: {
-                extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
+    return domains.map(domain => {
+        const ruleId = generateUniqueRuleId();
+        highestRuleId = Math.max(highestRuleId, ruleId);
+        return {
+            id: ruleId,
+            priority: 1,
+            action: {
+                type: "redirect",
+                redirect: {
+                    extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
+                }
+            },
+            condition: {
+                urlFilter: domain,
+                resourceTypes: ["main_frame"]
             }
-        },
-        condition: {
-            urlFilter: domain,
-            resourceTypes: ["main_frame"]
-        }
-    }));
+        };
+    });
 }
 
 // Function to update blocker rules
@@ -98,32 +109,38 @@ function updateBlockerRules(domains) {
     });
 }
 
-// Function to clear existing rules
+// Update the clearExistingRules function
 function clearExistingRules() {
-    chrome.declarativeNetRequest.getDynamicRules((rules) => {
-        const ruleIdsToRemove = rules.map(rule => rule.id);
-        if (ruleIdsToRemove.length > 0) {
-            chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: ruleIdsToRemove
-            }, () => {
-                if (chrome.runtime.lastError) {
-                    console.error('Error clearing existing rules:', chrome.runtime.lastError);
-                } else {
-                    console.log('Cleared existing rules:', ruleIdsToRemove);
-                }
-            });
-        } else {
-            console.log('No existing rules to clear.');
-        }
+    return new Promise((resolve) => {
+        chrome.declarativeNetRequest.getDynamicRules((rules) => {
+            const ruleIdsToRemove = rules.map(rule => rule.id);
+            
+            if (ruleIdsToRemove.length > 0) {
+                chrome.declarativeNetRequest.updateDynamicRules({
+                    removeRuleIds: ruleIdsToRemove
+                }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error clearing existing rules:', chrome.runtime.lastError);
+                    } else {
+                        console.log('Cleared existing rules:', ruleIdsToRemove);
+                        currentRuleIds = [];
+                    }
+                    resolve();
+                });
+            } else {
+                console.log('No existing rules to clear.');
+                resolve();
+            }
+        });
     });
 }
 
 // Function to restore blocker state on startup
 function restoreBlockerState() {
-    chrome.storage.local.get('blockerState', (data) => {
+    chrome.storage.local.get(['blockerState', 'blacklistedDomains'], (data) => {
+        console.log('Restoring blocker state:', data.blockerState);
         if (data.blockerState === 'on') {
-            isBlockerOn = true;
-            applyRules(); // Apply rules when restoring state
+            enableBlocker();
         } else {
             isBlockerOn = false;
             disableBlocker();
@@ -131,7 +148,14 @@ function restoreBlockerState() {
     });
 }
 
-// Listen for messages from the popup
+// Update the initializeExtension function
+function initializeExtension() {
+    clearExistingRules().then(() => {
+        restoreBlockerState();
+    });
+}
+
+// Update the message listener section
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'turnOnBlocker') {
         enableBlocker();
@@ -140,18 +164,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         disableBlocker();
         sendResponse({ success: true });
     } else if (message.action === 'getBlockerState') {
-        sendResponse({ state: isBlockerOn ? 'on' : 'off' });
+        // Check both the memory state and storage state
+        chrome.storage.local.get('blockerState', (data) => {
+            const state = data.blockerState || 'off';
+            isBlockerOn = state === 'on';
+            console.log('Responding to getBlockerState:', state);
+            sendResponse({ state: state });
+        });
+        return true; // Important for async response
     } else if (message.action === 'updateRules') {
-        logExistingRules(); // Log existing rules before updating
-        clearExistingRules(); // Clear existing rules before updating
+        logExistingRules();
+        clearExistingRules();
         updateBlockerRules(message.domains);
         sendResponse({ success: true });
     }
-    return true; // Required for async sendResponse
+    return true;
 });
 
-// Restore blocker state on startup
-chrome.runtime.onStartup.addListener(restoreBlockerState);
+// Initialize on installation and update
+chrome.runtime.onInstalled.addListener(initializeExtension);
+
+// Initialize on startup
+chrome.runtime.onStartup.addListener(initializeExtension);
 
 // Restore blocker state when the system becomes active
 chrome.idle.onStateChanged.addListener((newState) => {
@@ -164,9 +198,3 @@ chrome.idle.onStateChanged.addListener((newState) => {
 chrome.system.display.onDisplayChanged.addListener(() => {
     restoreBlockerState();
 });
-
-// Initialize state when extension is installed or updated
-chrome.runtime.onInstalled.addListener(restoreBlockerState);
-
-// Clear existing rules on startup
-clearExistingRules();
