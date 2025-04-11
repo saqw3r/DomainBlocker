@@ -27,17 +27,22 @@ function enableBlocker() {
 // Function to disable the blocker
 function disableBlocker() {
     if (isBlockerOn) {
-        chrome.storage.local.set({ blockerState: 'off' });
-        chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: currentRuleIds // Remove all active rules
-        }, () => {
-            if (chrome.runtime.lastError) {
-                console.error('Error disabling blocker:', chrome.runtime.lastError);
-            } else {
-                isBlockerOn = false;
-                currentRuleIds = []; // Clear stored rule IDs
-                console.log('Blocker disabled.');
-            }
+        chrome.storage.local.set({ blockerState: 'off' }, () => {
+            chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: currentRuleIds
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error disabling blocker:', chrome.runtime.lastError);
+                } else {
+                    isBlockerOn = false;
+                    currentRuleIds = []; // Clear stored rule IDs
+                    console.log('Blocker disabled, rules removed:', currentRuleIds);
+                    // Verify rules were removed
+                    chrome.declarativeNetRequest.getDynamicRules((rules) => {
+                        console.log('Current rules after disable:', rules);
+                    });
+                }
+            });
         });
     }
 }

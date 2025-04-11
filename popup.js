@@ -1,34 +1,26 @@
-// Add this at the beginning of the file
 document.addEventListener('DOMContentLoaded', () => {
-    // First get the state from storage
-    chrome.storage.local.get('blockerState', (data) => {
-        console.log('Initial state from storage:', data.blockerState);
-        if (data.blockerState) {
-            toggleButtons(data.blockerState);
+    // Get the current blocker state from the background script
+    chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
+        console.log('Received blocker state:', response.state);
+        if (response && response.state) {
+            toggleButtons(response.state);
         }
-        
-        // Then verify with background script
-        chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
-            console.log('State from background:', response.state);
-            if (response && response.state) {
-                toggleButtons(response.state);
-            }
-        });
     });
 });
 
-// Function to toggle button visibility
+// Ensure the toggleButtons function correctly sets button states
 function toggleButtons(blockerState) {
-    console.log('Toggling buttons with state:', blockerState);
     const onButton = document.getElementById('onButton');
     const offButton = document.getElementById('offButton');
-
+    
+    console.log('Setting button state to:', blockerState);
+    
     if (blockerState === 'on') {
-        onButton.classList.add('hidden'); // Hide "Turn On" button
-        offButton.classList.remove('hidden'); // Show "Turn Off" button
+        onButton.classList.add('hidden');
+        offButton.classList.remove('hidden');
     } else {
-        offButton.classList.add('hidden'); // Hide "Turn Off" button
-        onButton.classList.remove('hidden'); // Show "Turn On" button
+        onButton.classList.remove('hidden');
+        offButton.classList.add('hidden');
     }
 }
 
