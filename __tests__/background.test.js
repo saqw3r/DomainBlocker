@@ -1,5 +1,7 @@
 const chrome = require('../__mocks__/chrome');
 
+const { enableBlocker, disableBlocker } = require('../background.js');
+
 describe('Background Script Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -13,17 +15,13 @@ describe('Background Script Tests', () => {
 
 describe('Background Script', () => {
   beforeEach(() => {
-    // Reset chrome API mocks
     jest.clearAllMocks();
   });
 
-  test('enableBlocker should set correct state and apply rules', () => {
-    const { enableBlocker } = require('../background.js');
-    
-    chrome.storage.local.set.mockImplementation((data, callback) => callback());
+  test('enableBlocker should set correct state and apply rules', async () => {
     chrome.declarativeNetRequest.getDynamicRules.mockImplementation(callback => callback([]));
     
-    enableBlocker();
+    await enableBlocker();
     
     expect(chrome.storage.local.set).toHaveBeenCalledWith(
       { blockerState: 'on' },
@@ -32,8 +30,6 @@ describe('Background Script', () => {
   });
 
   test('disableBlocker should remove all rules', () => {
-    const { disableBlocker } = require('../background.js');
-    
     chrome.declarativeNetRequest.getDynamicRules.mockImplementation(callback => 
       callback([{ id: 1 }, { id: 2 }])
     );

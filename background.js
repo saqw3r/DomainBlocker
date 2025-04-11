@@ -28,12 +28,15 @@ function updateNextRuleId() {
     });
 }
 
-// Function to enable the blocker
+// Function to enable the blocker. Returns a promise for testing
 function enableBlocker() {
-    updateNextRuleId().then(() => {
-        chrome.storage.local.set({ blockerState: 'on' }, () => {
-            isBlockerOn = true;
-            applyRules();
+    return updateNextRuleId().then(() => {
+        return new Promise((resolve) => {
+            chrome.storage.local.set({ blockerState: 'on' }, () => {
+                isBlockerOn = true;
+                applyRules();
+                resolve();
+            });
         });
     });
 }
@@ -210,3 +213,13 @@ chrome.idle.onStateChanged.addListener((newState) => {
 chrome.system.display.onDisplayChanged.addListener(() => {
     restoreBlockerState();
 });
+
+// Export functions for testing purposes
+if (typeof module !== 'undefined') {
+    module.exports = {
+        enableBlocker,
+        disableBlocker,
+        applyRules, // if needed in tests
+        // add any other functions you want to test
+    };
+}

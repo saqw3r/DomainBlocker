@@ -50,6 +50,12 @@ const chrome = {
         addListener: jest.fn()
       }
     }
+  },
+
+  idle: {
+    onStateChanged: { 
+      addListener: jest.fn() 
+    } 
   }
 };
 
