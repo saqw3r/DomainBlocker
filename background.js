@@ -7,44 +7,49 @@ function logExistingRules() {
 // Update the global variables
 let isBlockerOn = false;
 let currentRuleIds = [];
-let nextRuleId = 1; // Counter for generating unique rule IDs
-let highestRuleId = 0; // Track the highest rule ID
+let nextRuleId = 1000; // Start with a higher number to avoid conflicts
 
-// Update the generateUniqueRuleId function
-function generateUniqueRuleId() {
-    highestRuleId = Math.max(highestRuleId, nextRuleId);
-    return nextRuleId++;
+// Function to get all existing rule IDs and update nextRuleId
+function updateNextRuleId() {
+    return new Promise((resolve) => {
+        chrome.declarativeNetRequest.getDynamicRules((rules) => {
+            if (rules.length > 0) {
+                const maxId = Math.max(...rules.map(rule => rule.id));
+                nextRuleId = maxId + 1;
+            }
+            resolve();
+        });
+    });
 }
 
 // Function to enable the blocker
 function enableBlocker() {
-    chrome.storage.local.set({ blockerState: 'on' }, () => {
-        isBlockerOn = true;
-        applyRules();
+    updateNextRuleId().then(() => {
+        chrome.storage.local.set({ blockerState: 'on' }, () => {
+            isBlockerOn = true;
+            applyRules();
+        });
     });
 }
 
 // Function to disable the blocker
 function disableBlocker() {
-    if (isBlockerOn) {
-        chrome.storage.local.set({ blockerState: 'off' }, () => {
-            chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: currentRuleIds
-            }, () => {
-                if (chrome.runtime.lastError) {
-                    console.error('Error disabling blocker:', chrome.runtime.lastError);
-                } else {
-                    isBlockerOn = false;
-                    currentRuleIds = []; // Clear stored rule IDs
-                    console.log('Blocker disabled, rules removed:', currentRuleIds);
-                    // Verify rules were removed
-                    chrome.declarativeNetRequest.getDynamicRules((rules) => {
-                        console.log('Current rules after disable:', rules);
-                    });
-                }
-            });
+    chrome.declarativeNetRequest.getDynamicRules((rules) => {
+        const allRuleIds = rules.map(rule => rule.id);
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: allRuleIds
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error disabling blocker:', chrome.runtime.lastError);
+            } else {
+                isBlockerOn = false;
+                currentRuleIds = [];
+                chrome.storage.local.set({ blockerState: 'off' }, () => {
+                    console.log('Blocker disabled, all rules removed');
+                });
+            }
         });
-    }
+    });
 }
 
 // Update the applyRules function
@@ -75,24 +80,20 @@ function applyRules() {
 
 // Function to create rules for a list of domains
 function createRules(domains) {
-    return domains.map(domain => {
-        const ruleId = generateUniqueRuleId();
-        highestRuleId = Math.max(highestRuleId, ruleId);
-        return {
-            id: ruleId,
-            priority: 1,
-            action: {
-                type: "redirect",
-                redirect: {
-                    extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
-                }
-            },
-            condition: {
-                urlFilter: domain,
-                resourceTypes: ["main_frame"]
+    return domains.map(domain => ({
+        id: nextRuleId++,
+        priority: 1,
+        action: {
+            type: "redirect",
+            redirect: {
+                extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
             }
-        };
-    });
+        },
+        condition: {
+            urlFilter: domain,
+            resourceTypes: ["main_frame"]
+        }
+    }));
 }
 
 // Function to update blocker rules
