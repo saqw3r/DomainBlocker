@@ -7,15 +7,21 @@ function logExistingRules() {
 // Update the global variables
 let isBlockerOn = false;
 let currentRuleIds = [];
-let nextRuleId = 1000; // Start with a higher number to avoid conflicts
+let nextRuleId = 1; 
+
+var getUniqueID = (function() {
+    var cntr = 1;
+    return function() {
+        return cntr++;
+    };
+})();
 
 // Function to get all existing rule IDs and update nextRuleId
 function updateNextRuleId() {
     return new Promise((resolve) => {
         chrome.declarativeNetRequest.getDynamicRules((rules) => {
             if (rules.length > 0) {
-                const maxId = Math.max(...rules.map(rule => rule.id));
-                nextRuleId = maxId + 1;
+                nextRuleId = getUniqueID();
             }
             resolve();
         });
@@ -78,10 +84,10 @@ function applyRules() {
     });
 }
 
-// Function to create rules for a list of domains
+// Update the createRules function to use the new assets path if needed
 function createRules(domains) {
     return domains.map(domain => ({
-        id: nextRuleId++,
+        id: getUniqueID(),
         priority: 1,
         action: {
             type: "redirect",
