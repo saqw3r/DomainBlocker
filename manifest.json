@@ -2,13 +2,10 @@
   "manifest_version": 3,
   "name": "Domain Blocker",
   "version": "1.0",
-  "description": "Blocks all main frame requests to the specified list of domains.",
+  "description": "Blocks specified domains",
   "permissions": [
-    "declarativeNetRequest", 
-    "declarativeNetRequestFeedback",
-    "declarativeNetRequestWithHostAccess", 
-    "storage", 
-    "tabs",
+    "declarativeNetRequest",
+    "storage",
     "idle",
     "system.display"
   ],
@@ -18,9 +15,10 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
+      "16": "assets/icons/icon16.png",
+      "32": "assets/icons/icon32.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
     }
   },
   "web_accessible_resources": [
@@ -29,16 +27,15 @@
       "matches": ["<all_urls>"]
     }
   ],
-  
   "host_permissions": [
     "<all_urls>"
   ],
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
   },
-  
   "content_security_policy": { 
     "extension_pages": "script-src 'self'; object-src 'self';" 
   }
