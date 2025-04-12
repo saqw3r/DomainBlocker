@@ -1,19 +1,7 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Get the current blocker state from the background script
-    chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
-        console.log('Received blocker state:', response.state);
-        if (response && response.state) {
-            toggleButtons(response.state);
-        }
-    });
-});
-
-// Ensure the toggleButtons function correctly sets button states
+// Your exported functions, e.g.:
 function toggleButtons(blockerState) {
     const onButton = document.getElementById('onButton');
     const offButton = document.getElementById('offButton');
-    
-    console.log('Setting button state to:', blockerState);
     
     if (blockerState === 'on') {
         onButton.classList.add('hidden');
@@ -24,7 +12,6 @@ function toggleButtons(blockerState) {
     }
 }
 
-// Function to toggle edit mode
 function toggleEditMode() {
     const editMode = document.getElementById('editMode');
     const editButton = document.getElementById('editButton');
@@ -33,7 +20,6 @@ function toggleEditMode() {
         // Enter edit mode
         editMode.classList.remove('hidden');
         editButton.textContent = 'Close Edit';
-        loadDomainList();
     } else {
         // Exit edit mode
         editMode.classList.add('hidden');
@@ -41,7 +27,6 @@ function toggleEditMode() {
     }
 }
 
-// Function to load the current list of domains
 function loadDomainList() {
     chrome.storage.local.get('blacklistedDomains', (data) => {
         const domainList = data.blacklistedDomains || [];
@@ -49,7 +34,6 @@ function loadDomainList() {
     });
 }
 
-// Function to save the updated list of domains
 function saveDomainList() {
     const domainList = document.getElementById('domainList').value
         .split('\n')
@@ -57,42 +41,34 @@ function saveDomainList() {
         .filter(domain => domain.length > 0);
 
     chrome.storage.local.set({ blacklistedDomains: domainList }, () => {
-        console.log('Domains saved:', domainList);
-        toggleEditMode(); // Exit edit mode after saving
-        updateBlockerRules(domainList); // Update blocker rules
+        updateBlockerRules(domainList);
     });
 }
 
-// Function to update blocker rules with the new domain list
-function updateBlockerRules(domains) {
-    chrome.runtime.sendMessage({ action: 'updateRules', domains }, (response) => {
-        if (response.success) {
-            console.log('Blocker rules updated.');
-        } else {
-            console.error('Error updating blocker rules:', response.error);
-        }
-    });
+// NEW: Create an initialization function to wire up event listeners after DOM is ready.
+function initPopup() {
+    const editButton = document.getElementById('editButton');
+    const saveButton = document.getElementById('saveButton');
+    const cancelButton = document.getElementById('cancelButton');
+
+    // Only add event listeners if the elements exist.
+    if (editButton) {
+        editButton.addEventListener('click', toggleEditMode);
+    }
+    if (saveButton) {
+        saveButton.addEventListener('click', saveDomainList);
+    }
+    if (cancelButton) {
+        cancelButton.addEventListener('click', toggleEditMode);
+    }
 }
 
-// Event listeners
-document.getElementById('editButton').addEventListener('click', toggleEditMode);
-document.getElementById('saveButton').addEventListener('click', saveDomainList);
-document.getElementById('cancelButton').addEventListener('click', toggleEditMode);
+// Optionally, auto-initialize on DOMContentLoaded in production:
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', initPopup);
+}
 
-// Turn on the blocker
-document.getElementById('onButton').addEventListener('click', function() {
-    chrome.runtime.sendMessage({ action: 'turnOnBlocker' }, (response) => {
-        if (response.success) {
-            toggleButtons('on'); // Show "Turn Off" button and hide "Turn On" button
-        }
-    });
-});
-
-// Turn off the blocker
-document.getElementById('offButton').addEventListener('click', function() {
-    chrome.runtime.sendMessage({ action: 'turnOffBlocker' }, (response) => {
-        if (response.success) {
-            toggleButtons('off'); // Show "Turn On" button and hide "Turn Off" button
-        }
-    });
-});
+// Export functions for testing
+if (typeof module !== 'undefined') {
+    module.exports = { toggleButtons, toggleEditMode, loadDomainList, saveDomainList, initPopup };
+}
