@@ -1,4 +1,4 @@
-# Domain Blocker
+# No Pass
 
 A Chrome extension that allows you to block access to specific websites. You can dynamically add, remove, or modify the list of blocked domains and toggle the blocker on or off.
 
@@ -37,13 +37,13 @@ Or download and extract the ZIP file from GitHub.
 ### 3. Pin the Extension
 
 1. Click the puzzle icon in the top-right corner of Chrome
-2. Find the **Domain Blocker** extension and click the pin icon to pin it to the toolbar
+2. Find the **No Pass** extension and click the pin icon to pin it to the toolbar
 
 ## Running the Extension
 
 Once installed, the extension runs automatically in the background:
 
-1. **Open the popup**: Click on the Domain Blocker icon in the Chrome toolbar
+1. **Open the popup**: Click on the No Pass icon in the Chrome toolbar
 2. **Toggle blocking**: Use the "Block" and "Unblock" buttons to control the blocking functionality
 3. **Edit domains**: Click "Edit Domains" to add, remove, or modify blocked sites
 
@@ -149,7 +149,7 @@ domain-blocker/
 ### Blocker Not Working
 
 1. Ensure the extension is loaded correctly in `chrome://extensions/`
-2. Check the console for errors: `chrome://extensions/` > Domain Blocker > "Service Worker" > "Inspect"
+2. Check the console for errors: `chrome://extensions/` > No Pass > "Service Worker" > "Inspect"
 3. Verify that the domains in the list are correctly formatted (e.g., `example.com`)
 4. Try reloading the extension: click the refresh icon on the extension card
 
