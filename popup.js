@@ -14,16 +14,13 @@ function toggleButtons(blockerState) {
 
 function toggleEditMode() {
     const editMode = document.getElementById('editMode');
-    const editButton = document.getElementById('editButton');
 
     if (editMode.classList.contains('hidden')) {
         // Enter edit mode
         editMode.classList.remove('hidden');
-        editButton.textContent = 'Close Edit';
     } else {
         // Exit edit mode
         editMode.classList.add('hidden');
-        editButton.textContent = 'Edit Domains';
     }
 }
 
@@ -34,7 +31,8 @@ function loadDomainList() {
     });
 }
 
-async function saveDomainList() {
+// Save domains to extension memory only (Chrome storage)
+function saveDomainList() {
     const domainList = document.getElementById('domainList').value
         .split('\n')
         .map(domain => domain.trim())
@@ -42,26 +40,39 @@ async function saveDomainList() {
 
     // Save to Chrome storage
     chrome.storage.local.set({ blacklistedDomains: domainList }, () => {
-        updateBlockerRules(domainList);
+        // Get current blocker state to determine if we should apply rules
+        chrome.storage.local.get('blockerState', (data) => {
+            if (data.blockerState === 'on') {
+                updateBlockerRules(domainList);
+            }
+            console.log('Domains saved to extension memory');
+        });
     });
+}
 
-    // Save backup to file system
+// Backup domains to file
+async function backupToFile() {
+    const domainList = document.getElementById('domainList').value
+        .split('\n')
+        .map(domain => domain.trim())
+        .filter(domain => domain.length > 0);
+
     try {
         const handle = await window.showSaveFilePicker({
-            suggestedName: 'domain-blocker-backup.json',
+            suggestedName: 'no-pass-backup.json',
             types: [{
                 description: 'JSON File',
                 accept: {'application/json': ['.json']},
             }],
         });
-        
+
         const writable = await handle.createWritable();
-        await writable.write(JSON.stringify({ 
+        await writable.write(JSON.stringify({
             blacklistedDomains: domainList,
             timestamp: new Date().toISOString()
         }));
         await writable.close();
-        console.log('Backup saved successfully');
+        console.log('Backup saved to file successfully');
     } catch (err) {
         console.error('Failed to save backup:', err);
     }
@@ -121,6 +132,7 @@ function initPopup() {
     // Wire up event listeners
     const editButton = document.getElementById('editButton');
     const saveButton = document.getElementById('saveButton');
+    const backupButton = document.getElementById('backupButton');
     const cancelButton = document.getElementById('cancelButton');
     const restoreButton = document.getElementById('restoreButton');
     const onButton = document.getElementById('onButton');
@@ -154,6 +166,7 @@ function initPopup() {
         });
     }
     if (saveButton) saveButton.addEventListener('click', saveDomainList);
+    if (backupButton) backupButton.addEventListener('click', backupToFile);
     if (cancelButton) cancelButton.addEventListener('click', toggleEditMode);
     if (restoreButton) restoreButton.addEventListener('click', restoreFromBackup);
 }
@@ -163,5 +176,5 @@ document.addEventListener('DOMContentLoaded', initPopup);
 
 // Export functions for testing
 if (typeof module !== 'undefined') {
-    module.exports = { toggleButtons, toggleEditMode, loadDomainList, saveDomainList, initPopup };
+    module.exports = { toggleButtons, toggleEditMode, loadDomainList, saveDomainList, backupToFile, initPopup };
 }

@@ -240,6 +240,18 @@
       box-shadow: 0 0 20px rgba(0, 255, 128, 0.5);
     }
 
+    #backupButton {
+      color: #ffaa00;
+      border-color: #ffaa00;
+      box-shadow: 0 0 10px rgba(255, 170, 0, 0.3);
+      text-shadow: 0 0 5px #ffaa00;
+    }
+
+    #backupButton:hover {
+      background: rgba(255, 170, 0, 0.1);
+      box-shadow: 0 0 20px rgba(255, 170, 0, 0.5);
+    }
+
     #cancelButton {
       color: #ff0040;
       border-color: #ff0040;
@@ -254,21 +266,21 @@
   </style>
 </head>
 <body>
-  <h2>No Pass Controls</h2>
   <div class="button-container">
-    <button id="onButton" class="control-btn">Block</button>
-    <button id="offButton" class="control-btn hidden">Unblock</button>
+    <button id="onButton" class="control-btn">No pass</button>
+    <button id="offButton" class="control-btn hidden">Pass</button>
   </div>
 
   <div class="button-container">
-    <button id="editButton" class="action-btn">Edit Domains</button>
-    <button id="restoreButton" class="action-btn">Restore from Backup</button>
+    <button id="editButton" class="action-btn">Edit List</button>
+    <button id="restoreButton" class="action-btn">Restore from file</button>
   </div>
 
   <div id="editMode" class="hidden">
     <textarea id="domainList" placeholder="Enter one domain per line..."></textarea>
     <div class="edit-controls">
-      <button id="saveButton" class="edit-btn">Save Changes</button>
+      <button id="saveButton" class="edit-btn">Save</button>
+      <button id="backupButton" class="edit-btn">Backup to File</button>
       <button id="cancelButton" class="edit-btn">Cancel</button>
     </div>
   </div>
