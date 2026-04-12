@@ -109,6 +109,9 @@ async function restoreFromBackup() {
 
 // Update the initialization function
 function initPopup() {
+    // Load the saved domain list immediately
+    loadDomainList();
+
     // Get initial state from background script
     chrome.runtime.sendMessage({ action: 'getBlockerState' }, (response) => {
         console.log('Initial blocker state:', response.state);
@@ -143,7 +146,13 @@ function initPopup() {
         });
     }
 
-    if (editButton) editButton.addEventListener('click', toggleEditMode);
+    // Wire up edit button to load domains when clicked
+    if (editButton) {
+        editButton.addEventListener('click', () => {
+            loadDomainList(); // Reload domains before showing
+            toggleEditMode();
+        });
+    }
     if (saveButton) saveButton.addEventListener('click', saveDomainList);
     if (cancelButton) cancelButton.addEventListener('click', toggleEditMode);
     if (restoreButton) restoreButton.addEventListener('click', restoreFromBackup);
