@@ -26,6 +26,32 @@
       border-radius: 10px;
       margin-bottom: 20px;
     }
+
+    .bmc-btn {
+      margin-top: 20px;
+      padding: 12px 32px;
+      background-color: #FFDD00;
+      color: #000000;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .bmc-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      background-color: #FFE135;
+    }
+
+    .bmc-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -34,8 +60,12 @@
   <h3>But don't worry, we have a funny image for you!</h3>
 
   <p>The requested domain <span id="blocked-url"></span> has been blocked.</p>
-  
+
   <img id="funny-image" src="./assets/images/funny_image.jpg" alt="Blocked">
+
+  <a href="https://buymeacoffee.com/saqw3r" target="_blank" class="bmc-btn">
+    &#9749; Buy me a coffee
+  </a>
 
   <script src="blocked.js"></script>
 </body>
