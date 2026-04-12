@@ -1,6 +1,5 @@
 // Array of funny images to rotate through
 const funnyImages = [
-    'assets/images/funny_image.jpg',
     'assets/images/187f46f7-d841-4b61-b440-b2e940c10c4d.jpg',
     'assets/images/2d1de817-228b-4e02-96ff-c03df65b6240.jpg',
     'assets/images/8070b3c9-48cd-439e-a379-925d5e738501.jpg',
