@@ -2,3 +2,4 @@
 **/coverage/*
 pnpm-lock.yaml
 *.log
+domain-blocker-backup.json

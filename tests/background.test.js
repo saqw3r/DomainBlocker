@@ -1,4 +1,4 @@
-const chrome = require('../__mocks__/chrome');
+const chrome = require('../mocks/chrome');
 
 const { enableBlocker, disableBlocker } = require('../background.js');
 
