@@ -2,13 +2,31 @@
 function toggleButtons(blockerState) {
     const onButton = document.getElementById('onButton');
     const offButton = document.getElementById('offButton');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = statusIndicator?.querySelector('.status-text');
     
     if (blockerState === 'on') {
         onButton.classList.add('hidden');
         offButton.classList.remove('hidden');
+        // Update status indicator
+        if (statusIndicator) {
+            statusIndicator.classList.remove('inactive');
+            statusIndicator.classList.add('active');
+        }
+        if (statusText) {
+            statusText.textContent = 'Access RESTRICTED - Listed sites blocked';
+        }
     } else {
         onButton.classList.remove('hidden');
         offButton.classList.add('hidden');
+        // Update status indicator
+        if (statusIndicator) {
+            statusIndicator.classList.remove('active');
+            statusIndicator.classList.add('inactive');
+        }
+        if (statusText) {
+            statusText.textContent = 'Access ALLOWED - Listed sites permitted';
+        }
     }
 }
 
