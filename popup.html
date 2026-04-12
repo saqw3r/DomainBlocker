@@ -8,18 +8,24 @@
     body {
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       width: 400px;
-      background-color: #f2f2f2;
+      background: linear-gradient(180deg, #0a0a0a 0%, #1a0a1a 50%, #0a0a1a 100%);
       margin: 0;
-      font-family: Arial, sans-serif;
+      padding: 20px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #fff;
+      box-sizing: border-box;
     }
 
     h2 {
-      color: #333;
-      margin: 10px 0;
+      color: #fff;
+      margin: 10px 0 20px 0;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      font-size: 18px;
+      letter-spacing: 2px;
     }
 
     img {
@@ -31,84 +37,240 @@
 
     .button-container {
       display: flex;
-      justify-content: space-between;
-      width: 80%;
-      margin-top: 20px;
+      justify-content: center;
+      width: 100%;
+      margin-top: 15px;
+      gap: 20px;
     }
 
     button {
-      flex: 1;
-      margin: 10px;
-      padding: 15px 25px;
-      font-size: 18px;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
+      font-family: 'Segoe UI', Arial, sans-serif;
     }
 
-    #offButton {
-      background-color: #4CAF50;
-      color: white;
+    /* Neon Cyberpunk Block/Unblock buttons - Octagon Stop/Go signs */
+    .control-btn {
+      width: 140px;
+      height: 140px;
+      font-size: 16px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      position: relative;
+      clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
     }
 
+    .control-btn:hover {
+      transform: scale(1.08);
+      filter: brightness(1.3);
+    }
+
+    .control-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Neon Red STOP sign - Cyberpunk style */
     #onButton {
-      background-color: #f44336;
-      color: white;
+      background: linear-gradient(135deg, #1a0000 0%, #2d0a0a 50%, #1a0000 100%);
+      color: #ff0040;
+      border: 3px solid #ff0040;
+      box-shadow: 
+        0 0 10px #ff0040,
+        0 0 20px #ff0040,
+        0 0 40px #ff0040,
+        inset 0 0 20px rgba(255, 0, 64, 0.2);
+      text-shadow: 0 0 10px #ff0040, 0 0 20px #ff0040;
+    }
+
+    #onButton::before {
+      content: "✕";
+      font-size: 48px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 15px #ff0040, 0 0 30px #ff0040;
+    }
+
+    #onButton:hover {
+      box-shadow: 
+        0 0 20px #ff0040,
+        0 0 40px #ff0040,
+        0 0 60px #ff0040,
+        inset 0 0 30px rgba(255, 0, 64, 0.3);
+    }
+
+    /* Neon Green GO sign - Cyberpunk style */
+    #offButton {
+      background: linear-gradient(135deg, #001a0a 0%, #0a2d1a 50%, #001a0a 100%);
+      color: #00ff80;
+      border: 3px solid #00ff80;
+      box-shadow: 
+        0 0 10px #00ff80,
+        0 0 20px #00ff80,
+        0 0 40px #00ff80,
+        inset 0 0 20px rgba(0, 255, 128, 0.2);
+      text-shadow: 0 0 10px #00ff80, 0 0 20px #00ff80;
+    }
+
+    #offButton::before {
+      content: "✓";
+      font-size: 48px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 15px #00ff80, 0 0 30px #00ff80;
+    }
+
+    #offButton:hover {
+      box-shadow: 
+        0 0 20px #00ff80,
+        0 0 40px #00ff80,
+        0 0 60px #00ff80,
+        inset 0 0 30px rgba(0, 255, 128, 0.3);
+    }
+
+    /* Small control buttons - Neon style */
+    .action-btn {
+      flex: 1;
+      max-width: 160px;
+      padding: 12px 20px;
+      font-size: 14px;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid;
     }
 
     #editButton {
-      background-color: #2196F3;
-      color: white;
+      color: #00ffff;
+      border-color: #00ffff;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      text-shadow: 0 0 5px #00ffff;
+    }
+
+    #editButton:hover {
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      text-shadow: 0 0 10px #00ffff;
+    }
+
+    #restoreButton {
+      color: #ff00ff;
+      border-color: #ff00ff;
+      box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+      text-shadow: 0 0 5px #ff00ff;
+    }
+
+    #restoreButton:hover {
+      background: rgba(255, 0, 255, 0.1);
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+      text-shadow: 0 0 10px #ff00ff;
     }
 
     .hidden {
-      display: none;
+      display: none !important;
     }
 
+    /* Edit mode - aligned with parent controls */
     #editMode {
       width: 100%;
       margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     textarea {
-      width: 100%;
+      width: 90%;
+      max-width: 350px;
       height: 150px;
       padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      font-size: 14px;
+      border: 2px solid #00ffff;
+      border-radius: 4px;
       resize: vertical;
+      font-family: 'Consolas', monospace;
+      background: rgba(0, 0, 0, 0.8);
+      color: #00ffff;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+
+    textarea::placeholder {
+      color: rgba(0, 255, 255, 0.5);
+    }
+
+    textarea:focus {
+      outline: none;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    }
+
+    .edit-controls {
+      display: flex;
+      justify-content: center;
+      width: 90%;
+      max-width: 350px;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .edit-btn {
+      flex: 1;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      border: 2px solid;
+      transition: all 0.3s ease;
+      background: rgba(0, 0, 0, 0.6);
     }
 
     #saveButton {
-      margin-top: 10px;
-      background-color: #4CAF50;
-      color: white;
+      color: #00ff80;
+      border-color: #00ff80;
+      box-shadow: 0 0 10px rgba(0, 255, 128, 0.3);
+      text-shadow: 0 0 5px #00ff80;
+    }
+
+    #saveButton:hover {
+      background: rgba(0, 255, 128, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 128, 0.5);
     }
 
     #cancelButton {
-      margin-top: 10px;
-      background-color: #f44336;
-      color: white;
+      color: #ff0040;
+      border-color: #ff0040;
+      box-shadow: 0 0 10px rgba(255, 0, 64, 0.3);
+      text-shadow: 0 0 5px #ff0040;
+    }
+
+    #cancelButton:hover {
+      background: rgba(255, 0, 64, 0.1);
+      box-shadow: 0 0 20px rgba(255, 0, 64, 0.5);
     }
   </style>
 </head>
 <body>
   <h2>Domain Blocker Controls</h2>
   <div class="button-container">
-    <button id="onButton">Block</button>
-    <button id="offButton" class="hidden">Unblock</button>
+    <button id="onButton" class="control-btn">Block</button>
+    <button id="offButton" class="control-btn hidden">Unblock</button>
   </div>
 
   <div class="button-container">
-    <button id="editButton">Edit Domains</button>
-    <button id="restoreButton">Restore from Backup</button>
+    <button id="editButton" class="action-btn">Edit Domains</button>
+    <button id="restoreButton" class="action-btn">Restore from Backup</button>
   </div>
 
   <div id="editMode" class="hidden">
     <textarea id="domainList" placeholder="Enter one domain per line..."></textarea>
-    <button id="saveButton">Save Changes</button>
-    <button id="cancelButton">Cancel</button>
+    <div class="edit-controls">
+      <button id="saveButton" class="edit-btn">Save Changes</button>
+      <button id="cancelButton" class="edit-btn">Cancel</button>
+    </div>
   </div>
 
   <script src="popup.js"></script>
