@@ -188,6 +188,42 @@ We welcome contributions! Please follow these steps:
 - Update documentation if needed
 - Ensure all tests pass before submitting
 
+## Building and Packaging
+
+### Generate Extension ZIP for Chrome Web Store
+
+To create a ZIP archive ready for upload to the Chrome Web Store:
+
+```bash
+node create-zip.js
+```
+
+This will create `no-pass.zip` excluding development files (tests, node_modules, etc.).
+
+### Generate Icons
+
+To generate the neon-cyberpunk style icons:
+
+**Option 1: Browser (Easiest)**
+1. Open `icon-generator.html` in any web browser
+2. Right-click each canvas and select "Save Image As"
+3. Save to `assets/icons/` folder
+
+**Option 2: Online Converter**
+1. Open `assets/icons/icon.svg` (master SVG file)
+2. Upload to any online SVG to PNG converter:
+   - https://cloudconvert.com/svg-to-png
+   - https://convertio.co/svg-png/
+3. Download sizes: 16x16, 32x32, 48x48, and 128x128 pixels
+
+**Option 3: Command Line (requires ImageMagick)**
+```bash
+magick convert -background none assets/icons/icon.svg -resize 128x128 assets/icons/icon128.png
+magick convert -background none assets/icons/icon.svg -resize 48x48 assets/icons/icon48.png
+magick convert -background none assets/icons/icon.svg -resize 32x32 assets/icons/icon32.png
+magick convert -background none assets/icons/icon.svg -resize 16x16 assets/icons/icon16.png
+```
+
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).

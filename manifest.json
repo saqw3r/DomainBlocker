@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "No Pass",
   "version": "1.0",
-  "description": "Blocks specified domains",
+  "description": "Simple domain blocker for Chrome. Blocks access to specified domains with a single click.",
   "permissions": [
     "declarativeNetRequest",
     "storage",
