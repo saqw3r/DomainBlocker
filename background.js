@@ -1,27 +1,22 @@
+// Logging function for existing rules
 function logExistingRules() {
-  chrome.declarativeNetRequest.getDynamicRules((rules) => {
-      console.log("Existing dynamic rules:", rules);
-  });
+    chrome.declarativeNetRequest.getDynamicRules((rules) => {
+        console.log('Existing dynamic rules:', rules.map(r => ({id: r.id, filter: r.condition.urlFilter})));
+    });
 }
 
-// Update the global variables
+// Global variables
 let isBlockerOn = false;
 let currentRuleIds = [];
-let nextRuleId = 1; 
-
-var getUniqueID = (function() {
-    var cntr = 1;
-    return function() {
-        return cntr++;
-    };
-})();
+let nextRuleId = 1;
 
 // Function to get all existing rule IDs and update nextRuleId
 function updateNextRuleId() {
     return new Promise((resolve) => {
         chrome.declarativeNetRequest.getDynamicRules((rules) => {
             if (rules.length > 0) {
-                nextRuleId = getUniqueID();
+                const maxId = Math.max(...rules.map(rule => rule.id));
+                nextRuleId = maxId + 1;
             }
             resolve();
         });
@@ -30,10 +25,12 @@ function updateNextRuleId() {
 
 // Function to enable the blocker. Returns a promise for testing
 function enableBlocker() {
+    console.log('enableBlocker called, isBlockerOn:', isBlockerOn);
     return updateNextRuleId().then(() => {
         return new Promise((resolve) => {
             chrome.storage.local.set({ blockerState: 'on' }, () => {
                 isBlockerOn = true;
+                console.log('enableBlocker: calling applyRules');
                 applyRules();
                 resolve();
             });
@@ -43,8 +40,10 @@ function enableBlocker() {
 
 // Function to disable the blocker
 function disableBlocker() {
+    console.log('disableBlocker called, isBlockerOn:', isBlockerOn);
     chrome.declarativeNetRequest.getDynamicRules((rules) => {
         const allRuleIds = rules.map(rule => rule.id);
+        console.log('disableBlocker removing rules:', allRuleIds);
         chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: allRuleIds
         }, () => {
@@ -63,11 +62,19 @@ function disableBlocker() {
 
 // Update the applyRules function
 function applyRules() {
-    chrome.storage.local.get(['blacklistedDomains', 'blockerState'], (data) => {
-        const domains = data.blacklistedDomains || [];
-        if (data.blockerState === 'on') {
+    // Use in-memory state to avoid storage race conditions
+    // enableBlocker/disableBlocker set isBlockerOn before calling this
+    console.log('applyRules: isBlockerOn:', isBlockerOn);
+    if (!isBlockerOn) {
+        console.log('applyRules: blocker is off, skipping');
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+        chrome.storage.local.get('blacklistedDomains', (data) => {
+            const domains = data.blacklistedDomains || [];
+            console.log('applyRules: domains from storage:', domains);
             const rules = createRules(domains);
-            console.log("Enabling blocker with rules:", rules);
+            console.log('Enabling blocker with rules:', rules);
 
             chrome.declarativeNetRequest.updateDynamicRules({
                 removeRuleIds: currentRuleIds,
@@ -78,38 +85,46 @@ function applyRules() {
                     isBlockerOn = false;
                     chrome.storage.local.set({ blockerState: 'off' });
                 } else {
-                    isBlockerOn = true;
                     currentRuleIds = rules.map(rule => rule.id);
                     console.log('Blocker enabled with rules:', rules);
+                    // Verify rules are active
+                    chrome.declarativeNetRequest.getDynamicRules((activeRules) => {
+                        console.log('Active dynamic rules after enable:', activeRules.map(r => ({id: r.id, filter: r.condition.urlFilter})));
+                    });
                 }
+                resolve();
             });
-        }
+        });
     });
 }
 
 // Update the createRules function to use the new assets path if needed
 function createRules(domains) {
-    return domains.map(domain => ({
-        id: getUniqueID(),
-        priority: 1,
-        action: {
-            type: "redirect",
-            redirect: {
-                extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
+    return domains.map(domain => {
+        const rule = {
+            id: nextRuleId++,
+            priority: 1,
+            action: {
+                type: "redirect",
+                redirect: {
+                    extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
+                }
+            },
+            condition: {
+                urlFilter: `||${domain}^`,
+                resourceTypes: ["main_frame"]
             }
-        },
-        condition: {
-            urlFilter: domain,
-            resourceTypes: ["main_frame"]
-        }
-    }));
+        };
+        console.log('Created rule:', JSON.stringify(rule, null, 2));
+        return rule;
+    });
 }
 
 // Function to update blocker rules
 function updateBlockerRules(domains) {
     const rules = createRules(domains);
 
-    console.log("Updating rules with:", rules); // Log the rules being added
+    console.log("Updating rules with:", rules);
 
     chrome.declarativeNetRequest.updateDynamicRules({
         removeRuleIds: currentRuleIds, // Remove existing rules
@@ -119,7 +134,12 @@ function updateBlockerRules(domains) {
             console.error('Error updating rules:', chrome.runtime.lastError);
         } else {
             currentRuleIds = rules.map(rule => rule.id); // Store new rule IDs
+            isBlockerOn = true; // Ensure state is correct
             console.log('Blocker rules updated.');
+            // Verify rules are active
+            chrome.declarativeNetRequest.getDynamicRules((activeRules) => {
+                console.log('Active dynamic rules after update:', activeRules.map(r => ({id: r.id, filter: r.condition.urlFilter})));
+            });
         }
     });
 }
@@ -135,10 +155,10 @@ function clearExistingRules() {
                     removeRuleIds: ruleIdsToRemove
                 }, () => {
                     if (chrome.runtime.lastError) {
-                        console.error('Error clearing existing rules:', chrome.runtime.lastError);
+                        console.error('Error clearing rules:', chrome.runtime.lastError);
                     } else {
-                        console.log('Cleared existing rules:', ruleIdsToRemove);
                         currentRuleIds = [];
+                        console.log('Cleared existing rules:', ruleIdsToRemove);
                     }
                     resolve();
                 });
@@ -153,13 +173,28 @@ function clearExistingRules() {
 // Function to restore blocker state on startup
 function restoreBlockerState() {
     chrome.storage.local.get(['blockerState', 'blacklistedDomains'], (data) => {
-        console.log('Restoring blocker state:', data.blockerState);
-        if (data.blockerState === 'on') {
-            enableBlocker();
-        } else {
-            isBlockerOn = false;
-            disableBlocker();
-        }
+        console.log('Restoring blocker state:', data.blockerState, 'isBlockerOn:', isBlockerOn);
+        
+        // Verify current active rules before deciding
+        chrome.declarativeNetRequest.getDynamicRules((rules) => {
+            const hasActiveRules = rules.length > 0;
+            const storedState = data.blockerState === 'on';
+            
+            if (storedState && !hasActiveRules) {
+                // Storage says ON but no rules active - re-enable
+                console.log('restoreBlockerState: re-enabling blocker (rules missing)');
+                enableBlocker();
+            } else if (!storedState && hasActiveRules) {
+                // Storage says OFF but rules active - disable
+                console.log('restoreBlockerState: disabling blocker (stale rules)');
+                isBlockerOn = false;
+                disableBlocker();
+            } else {
+                // State matches reality - sync memory and do nothing
+                isBlockerOn = storedState && hasActiveRules;
+                console.log('restoreBlockerState: state consistent, skipping');
+            }
+        });
     });
 }
 
@@ -179,19 +214,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         disableBlocker();
         sendResponse({ success: true });
     } else if (message.action === 'getBlockerState') {
-        // Check both the memory state and storage state
+        // Check both the memory state and storage state, AND verify active rules
         chrome.storage.local.get('blockerState', (data) => {
-            const state = data.blockerState || 'off';
-            isBlockerOn = state === 'on';
-            console.log('Responding to getBlockerState:', state);
-            sendResponse({ state: state });
+            const storedState = data.blockerState || 'off';
+            const memoryState = isBlockerOn ? 'on' : 'off';
+            
+            // Verify rules are actually active
+            chrome.declarativeNetRequest.getDynamicRules((rules) => {
+                const hasActiveRules = rules.length > 0;
+                const effectiveState = (storedState === 'on' && hasActiveRules) ? 'on' : 'off';
+                
+                console.log('getBlockerState: stored:', storedState, 'memory:', memoryState, 'activeRules:', rules.length, 'effective:', effectiveState);
+                
+                // Sync in-memory state with reality
+                isBlockerOn = (effectiveState === 'on');
+                if (effectiveState !== storedState) {
+                    chrome.storage.local.set({ blockerState: effectiveState });
+                }
+                sendResponse({ state: effectiveState });
+            });
         });
         return true; // Important for async response
     } else if (message.action === 'updateRules') {
-        logExistingRules();
-        clearExistingRules();
-        updateBlockerRules(message.domains);
-        sendResponse({ success: true });
+        console.log('updateRules message received, domains:', message.domains);
+        chrome.storage.local.get('blockerState', (data) => {
+            const blockerState = data.blockerState || 'off';
+            console.log('updateRules: blockerState from storage:', blockerState);
+            if (blockerState === 'on') {
+                // Update rules in place without clearing first
+                updateBlockerRules(message.domains);
+            }
+            sendResponse({ success: true });
+        });
+        return true;
     }
     return true;
 });

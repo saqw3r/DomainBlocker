@@ -61,7 +61,7 @@ function saveDomainList() {
         // Get current blocker state to determine if we should apply rules
         chrome.storage.local.get('blockerState', (data) => {
             if (data.blockerState === 'on') {
-                updateBlockerRules(domainList);
+                chrome.runtime.sendMessage({ action: 'updateRules', domains: domainList });
             }
             console.log('Domains saved to extension memory');
         });
@@ -120,10 +120,8 @@ async function restoreFromBackup() {
                 chrome.storage.local.get('blockerState', (data) => {
                     if (data.blockerState === 'on') {
                         // Only update rules if blocker is currently on
-                        updateBlockerRules(backup.blacklistedDomains);
+                        chrome.runtime.sendMessage({ action: 'updateRules', domains: backup.blacklistedDomains });
                     }
-                    loadDomainList(); // Refresh the displayed list
-                    console.log('Domains restored from backup');
                     alert('Domains restored successfully! The blocker is currently ' + (data.blockerState === 'on' ? 'ON' : 'OFF') + '. Turn it on to block the restored domains.');
                 });
             });
@@ -132,7 +130,13 @@ async function restoreFromBackup() {
             alert('Invalid backup file format. Expected blacklistedDomains array.');
         }
     } catch (err) {
+        // Ignore user cancellation (AbortError)
+        if (err.name === 'AbortError' || err.name === 'SecurityError') {
+            console.log('File picker cancelled or denied:', err.name);
+            return;
+        }
         console.error('Failed to restore from backup:', err);
+        alert('Failed to restore backup: ' + err.message);
     }
 }
 
