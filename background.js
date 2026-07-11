@@ -26,6 +26,10 @@ function updateNextRuleId() {
 // Function to enable the blocker. Returns a promise for testing
 function enableBlocker() {
     console.log('enableBlocker called, isBlockerOn:', isBlockerOn);
+    if (isBlockerOn) {
+        console.log('Blocker already on, skipping');
+        return Promise.resolve();
+    }
     return updateNextRuleId().then(() => {
         return new Promise((resolve) => {
             chrome.storage.local.set({ blockerState: 'on' }, () => {
@@ -270,11 +274,20 @@ chrome.system.display.onDisplayChanged.addListener(() => {
 });
 
 // Export functions for testing purposes
-if (typeof module !== 'undefined') {
+if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         enableBlocker,
         disableBlocker,
-        applyRules, // if needed in tests
-        // add any other functions you want to test
+        applyRules,
+        createRules,
+        updateBlockerRules,
+        clearExistingRules,
+        restoreBlockerState,
+        get isBlockerOn() { return isBlockerOn; },
+        set isBlockerOn(v) { isBlockerOn = v; },
+        get currentRuleIds() { return currentRuleIds; },
+        set currentRuleIds(v) { currentRuleIds = v; },
+        get nextRuleId() { return nextRuleId; },
+        set nextRuleId(v) { nextRuleId = v; }
     };
 }
