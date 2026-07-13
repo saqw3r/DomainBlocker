@@ -51,6 +51,28 @@ describe('Background Script Tests', () => {
       expect(rules[0].action.type).toBe('redirect');
       expect(rules[0].action.redirect.extensionPath).toBe('/blocked.html?blockedUrl=restricted.com');
     });
+
+    test('supports TLD suffix wildcards (.suffix -> *.suffix)', () => {
+      const rules = background.createRules(['.suffix', '.tld']);
+      
+      expect(rules).toHaveLength(2);
+      expect(rules[0].condition.urlFilter).toBe('*.suffix');
+      expect(rules[1].condition.urlFilter).toBe('*.tld');
+    });
+
+    test('mixes TLD suffix wildcards and regular domains', () => {
+      const rules = background.createRules(['restricted.com', '.suffix', 'another.org']);
+      
+      expect(rules).toHaveLength(3);
+      expect(rules[0].condition.urlFilter).toBe('||restricted.com^');
+      expect(rules[1].condition.urlFilter).toBe('*.suffix');
+      expect(rules[2].condition.urlFilter).toBe('||another.org^');
+    });
+
+    test('TLD suffix wildcard redirect includes leading dot in blockedUrl', () => {
+      const rules = background.createRules(['.suffix']);
+      expect(rules[0].action.redirect.extensionPath).toBe('/blocked.html?blockedUrl=.suffix');
+    });
   });
 
   describe('enableBlocker', () => {
@@ -134,12 +156,12 @@ describe('Background Script Tests', () => {
   });
 
   describe('updateBlockerRules', () => {
-    test('atomically replaces rules without clearing first', () => {
+    test('atomically replaces rules without clearing first', async () => {
       background.currentRuleIds = [10, 11];
       background.isBlockerOn = true;
       chrome.declarativeNetRequest.getDynamicRules.mockImplementation(callback => callback([]));
       
-      background.updateBlockerRules(['restricted.com', 'newdomain.com']);
+      await background.updateBlockerRules(['restricted.com', 'newdomain.com']);
       
       expect(chrome.declarativeNetRequest.updateDynamicRules).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -154,11 +176,11 @@ describe('Background Script Tests', () => {
       expect(background.isBlockerOn).toBe(true);
     });
 
-    test('generates unique incremental rule IDs', () => {
+    test('generates unique incremental rule IDs', async () => {
       background.nextRuleId = 5;
       background.currentRuleIds = [1, 2];
       
-      background.updateBlockerRules(['a.com', 'b.com', 'c.com']);
+      await background.updateBlockerRules(['a.com', 'b.com', 'c.com']);
       
       const rules = chrome.declarativeNetRequest.updateDynamicRules.mock.calls[0][0].addRules;
       expect(rules[0].id).toBe(5);
@@ -292,7 +314,7 @@ describe('Background Script Tests', () => {
       expect(background.isBlockerOn).toBe(false);
     });
 
-    test('updateRules updates rules atomically when blocker is on', () => {
+    test('updateRules updates rules atomically when blocker is on', async () => {
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ blockerState: 'on' });
       });
@@ -300,7 +322,7 @@ describe('Background Script Tests', () => {
       background.currentRuleIds = [10, 11];
       
       // Directly call the updateBlockerRules function that the message handler uses
-      background.updateBlockerRules(['restricted.com', 'newsite.com']);
+      await background.updateBlockerRules(['restricted.com', 'newsite.com']);
       
       expect(chrome.declarativeNetRequest.updateDynamicRules).toHaveBeenCalledWith(
         expect.objectContaining({

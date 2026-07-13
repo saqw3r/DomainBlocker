@@ -85,7 +85,8 @@ function applyRules() {
                 addRules: rules
             }, () => {
                 if (chrome.runtime.lastError) {
-                    console.error('Error enabling blocker:', chrome.runtime.lastError);
+                    console.error('Error enabling blocker:', JSON.stringify(chrome.runtime.lastError, null, 2));
+                    console.error('Failed rules:', JSON.stringify(rules, null, 2));
                     isBlockerOn = false;
                     chrome.storage.local.set({ blockerState: 'off' });
                 } else {
@@ -102,9 +103,12 @@ function applyRules() {
     });
 }
 
-// Update the createRules function to use the new assets path if needed
 function createRules(domains) {
     return domains.map(domain => {
+        // Support TLD suffix wildcards: .suffix -> *.suffix matches all *.suffix domains
+        const urlFilter = domain.startsWith('.')
+            ? `*${domain}`  // .ru -> *.ru (matches all *.ru)
+            : `||${domain}^`; // example.com -> ||example.com^ (matches example.com and subdomains)
         const rule = {
             id: nextRuleId++,
             priority: 1,
@@ -115,7 +119,7 @@ function createRules(domains) {
                 }
             },
             condition: {
-                urlFilter: `||${domain}^`,
+                urlFilter,
                 resourceTypes: ["main_frame"]
             }
         };
@@ -126,29 +130,26 @@ function createRules(domains) {
 
 // Function to update blocker rules
 function updateBlockerRules(domains) {
-    const rules = createRules(domains);
+    return updateNextRuleId().then(() => {
+        const rules = createRules(domains);
 
-    console.log("Updating rules with:", rules);
+        console.log("Updating rules with:", rules);
 
-    chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: currentRuleIds, // Remove existing rules
-        addRules: rules // Add new rules
-    }, () => {
-        if (chrome.runtime.lastError) {
-            console.error('Error updating rules:', chrome.runtime.lastError);
-        } else {
-            currentRuleIds = rules.map(rule => rule.id); // Store new rule IDs
-            isBlockerOn = true; // Ensure state is correct
-            console.log('Blocker rules updated.');
-            // Verify rules are active
-            chrome.declarativeNetRequest.getDynamicRules((activeRules) => {
-                console.log('Active dynamic rules after update:', activeRules.map(r => ({id: r.id, filter: r.condition.urlFilter})));
-            });
-        }
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: currentRuleIds, // Remove existing rules
+            addRules: rules // Add new rules
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error updating rules:', JSON.stringify(chrome.runtime.lastError, null, 2));
+                console.error('Failed rules:', JSON.stringify(rules, null, 2));
+            } else {
+                currentRuleIds = rules.map(rule => rule.id); // Store new rule IDs
+                isBlockerOn = true; // Ensure state is correct
+                console.log('Blocker rules updated.');
+            }
+        });
     });
 }
-
-// Update the clearExistingRules function
 function clearExistingRules() {
     return new Promise((resolve) => {
         chrome.declarativeNetRequest.getDynamicRules((rules) => {
