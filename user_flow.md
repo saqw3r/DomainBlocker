@@ -48,7 +48,7 @@ graph TD
     AG[User Enters .suffix] --> AH{Input Starts with .?}
     AH -- YES --> AI[Store as TLD suffix pattern]
     AH -- NO --> AJ[Store as exact domain]
-    AI --> AK[Rule: urlFilter = *.suffix]
+    AI --> AK[Rule: urlFilter = ||.suffix]
     AJ --> AL[Rule: urlFilter = ||domain^]
 ```
 
@@ -79,15 +79,15 @@ graph TD
 
 ### 7. **TLD Suffix Wildcard Blocking Support**
 - **Root Cause**: Extension only supported exact domain matching (`||domain^`), couldn't block entire TLD suffixes
-- **Fix**: Detect TLD suffix patterns (input starting with `.`) and generate `*.suffix` filter which matches all subdomains of that suffix
+- **Fix**: Detect TLD suffix patterns (input starting with `.`) and generate `||.suffix` filter which matches all subdomains of that suffix
 - **Files**: `background.js` -> `createRules()`, `popup.js` -> input validation
 
 ## Verification Logs (Working State)
 ```
 Created rule: {"urlFilter": "||restricted.com^", ...}
-Created rule: {"urlFilter": "*.suffix", ...}
+Created rule: {"urlFilter": "||.suffix", ...}
 Blocker enabled with rules: [...]
-Active dynamic rules after enable: [{"id":1,"filter":"||restricted.com^"},{"id":2,"filter":"*.suffix"},...]
+Active dynamic rules after enable: [{"id":1,"filter":"||restricted.com^"},{"id":2,"filter":"||.suffix"},...]
 getBlockerState: stored:on memory:on activeRules:3 effective:on
 restoreBlockerState: state consistent, skipping
 ```

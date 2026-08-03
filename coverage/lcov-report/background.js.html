@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">58.38% </span>
+                <span class="strong">56.41% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>87/149</span>
+                <span class='fraction'>88/156</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">41.37% </span>
+                <span class="strong">39.06% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>24/58</span>
+                <span class='fraction'>25/64</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">62.74% </span>
+                <span class="strong">59.25% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>32/51</span>
+                <span class='fraction'>32/54</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">59.15% </span>
+                <span class="strong">57.04% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>84/142</span>
+                <span class='fraction'>85/149</span>
             </div>
         
             
@@ -356,7 +356,18 @@
 <a name='L291'></a><a href='#L291'>291</a>
 <a name='L292'></a><a href='#L292'>292</a>
 <a name='L293'></a><a href='#L293'>293</a>
-<a name='L294'></a><a href='#L294'>294</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -467,15 +478,24 @@
 <span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -642,14 +662,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">41x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">37x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">31x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// Logging function for existing rules
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
+// Logging function for existing rules
 function <span class="fstat-no" title="function not covered" >logExistingRules(</span>) {
 <span class="cstat-no" title="statement not covered" >    chrome.declarativeNetRequest.getDynamicRules(<span class="fstat-no" title="function not covered" >(r</span>ules) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >        console.log('Existing dynamic rules:', rules.map(<span class="fstat-no" title="function not covered" >r </span>=&gt; (<span class="cstat-no" title="statement not covered" >{id: r.id, filter: r.condition.urlFilter})</span>));</span>
@@ -756,22 +777,31 @@ function applyRules() {
 &nbsp;
 function createRules(domains) {
     return domains.map(domain =&gt; {
-        // Support TLD suffix wildcards: .suffix -&gt; *.suffix matches all *.suffix domains
+        // Support TLD suffix wildcards: .suffix -&gt; ||.suffix matches all *.suffix domains
         const urlFilter = domain.startsWith('.')
-            ? `*${domain}`  // .ru -&gt; *.ru (matches all *.ru)
+            ? `||${domain}`  // .ru -&gt; ||.ru (matches all *.ru)
             : `||${domain}^`; // example.com -&gt; ||example.com^ (matches example.com and subdomains)
+        // Convert IDN domains to punycode for urlFilter
+        const filterValue = /[^\x00-\x7F]/.test(urlFilter)
+            ? <span class="branch-0 cbranch-no" title="branch not covered" >convertToPunycode(urlFilter)</span>
+            : urlFilter;
+        
+        // Simple IDN to punycode conversion
+        function <span class="fstat-no" title="function not covered" >convertToPunycode(</span>str) {
+<span class="cstat-no" title="statement not covered" >            return str.split('.').map(<span class="fstat-no" title="function not covered" >pa</span>rt =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >                if (/[^\x00-\x7F]/.test(part)) {</span>
+<span class="cstat-no" title="statement not covered" >                    return 'xn--' + part.toLowerCase().normalize('NFKC').split('').map(<span class="fstat-no" title="function not covered" >c </span>=&gt; {</span>
+                        const code = <span class="cstat-no" title="statement not covered" >c.charCodeAt(0);</span>
+<span class="cstat-no" title="statement not covered" >                        return code &gt; 127 ? code.toString(16) : c;</span>
+                    }).join('');
+                }
+<span class="cstat-no" title="statement not covered" >                return part;</span>
+            }).join('.');
+        }
         const rule = {
             id: nextRuleId++,
             priority: 1,
             action: {
-                type: "redirect",
-                redirect: {
-                    extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
-                }
-            },
-            condition: {
-                urlFilter,
-                resourceTypes: ["main_frame"]
             }
         };
         console.log('Created rule:', JSON.stringify(rule, null, 2));
@@ -949,7 +979,7 @@ chrome.system.display.onDisplayChanged.addListener(<span class="fstat-no" title=
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-13T02:59:54.374Z
+                at 2026-07-13T10:16:53.357Z
             </div>
         <script src="prettify.js"></script>
         <script>

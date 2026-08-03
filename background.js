@@ -1,3 +1,4 @@
+
 // Logging function for existing rules
 function logExistingRules() {
     chrome.declarativeNetRequest.getDynamicRules((rules) => {
@@ -105,10 +106,27 @@ function applyRules() {
 
 function createRules(domains) {
     return domains.map(domain => {
-        // Support TLD suffix wildcards: .suffix -> *.suffix matches all *.suffix domains
+        // Support TLD suffix wildcards: .suffix -> ||.suffix matches all *.suffix domains
         const urlFilter = domain.startsWith('.')
-            ? `*${domain}`  // .ru -> *.ru (matches all *.ru)
+            ? `||${domain}`  // .ru -> ||.ru (matches all *.ru)
             : `||${domain}^`; // example.com -> ||example.com^ (matches example.com and subdomains)
+        // Convert IDN domains to punycode for urlFilter
+        const filterValue = /[^\x00-\x7F]/.test(urlFilter)
+            ? convertToPunycode(urlFilter)
+            : urlFilter;
+        
+        // Simple IDN to punycode conversion
+        function convertToPunycode(str) {
+            return str.split('.').map(part => {
+                if (/[^\x00-\x7F]/.test(part)) {
+                    return 'xn--' + part.toLowerCase().normalize('NFKC').split('').map(c => {
+                        const code = c.charCodeAt(0);
+                        return code > 127 ? code.toString(16) : c;
+                    }).join('');
+                }
+                return part;
+            }).join('.');
+        }
         const rule = {
             id: nextRuleId++,
             priority: 1,
@@ -119,7 +137,7 @@ function createRules(domains) {
                 }
             },
             condition: {
-                urlFilter,
+                urlFilter: filterValue,
                 resourceTypes: ["main_frame"]
             }
         };
