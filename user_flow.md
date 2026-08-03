@@ -1,5 +1,7 @@
 # User Flow Diagram
 
+### 1. Core User Flow
+
 ```mermaid
 graph TD
     %% Initial State Loading
@@ -80,7 +82,7 @@ graph TD
 ### 7. **TLD Suffix Wildcard Blocking Support**
 - **Root Cause**: Extension only supported exact domain matching (`||domain^`), couldn't block entire TLD suffixes
 - **Fix**: Detect TLD suffix patterns (input starting with `.`) and generate `||.suffix` filter which matches all subdomains of that suffix
-- **Files**: `background.js` -> `createRules()`, `popup.js` -> input validation
+- **Files**: `background.js` -> `createRules()` (the `.`-prefix handling lives entirely in `createRules`; `popup.js` does not validate input, it only trims and filters empty lines)
 
 ## Verification Logs (Working State)
 ```
