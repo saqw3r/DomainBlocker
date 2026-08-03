@@ -52,12 +52,12 @@ describe('Background Script Tests', () => {
       expect(rules[0].action.redirect.extensionPath).toBe('/blocked.html?blockedUrl=restricted.com');
     });
 
-    test('supports TLD suffix wildcards (.suffix -> ||.suffix)', () => {
+    test('supports TLD suffix wildcards (.suffix -> ||suffix^)', () => {
       const rules = background.createRules(['.suffix', '.tld']);
       
       expect(rules).toHaveLength(2);
-      expect(rules[0].condition.urlFilter).toBe('||.suffix');
-      expect(rules[1].condition.urlFilter).toBe('||.tld');
+      expect(rules[0].condition.urlFilter).toBe('||suffix^');
+      expect(rules[1].condition.urlFilter).toBe('||tld^');
     });
 
     test('mixes TLD suffix wildcards and regular domains', () => {
@@ -65,7 +65,7 @@ describe('Background Script Tests', () => {
       
       expect(rules).toHaveLength(3);
       expect(rules[0].condition.urlFilter).toBe('||restricted.com^');
-      expect(rules[1].condition.urlFilter).toBe('||.suffix');
+      expect(rules[1].condition.urlFilter).toBe('||suffix^');
       expect(rules[2].condition.urlFilter).toBe('||another.org^');
     });
 

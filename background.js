@@ -106,9 +106,11 @@ function applyRules() {
 
 function createRules(domains) {
     return domains.map(domain => {
-        // Support TLD suffix wildcards: .suffix -> ||.suffix matches all *.suffix domains
+        // Support TLD suffix wildcards: .suffix -> ||suffix^ matches all *.suffix domains.
+        // '||.suffix' (leading dot) does NOT match in Chromium DNR, because the dot is not
+        // a domain boundary -- so strip it and rely on the ^ separator instead.
         const urlFilter = domain.startsWith('.')
-            ? `||${domain}`  // .ru -> ||.ru (matches all *.ru)
+            ? `||${domain.slice(1)}^`  // .ru -> ||ru^ (matches all *.ru)
             : `||${domain}^`; // example.com -> ||example.com^ (matches example.com and subdomains)
         // Convert IDN domains to punycode for urlFilter
         const filterValue = /[^\x00-\x7F]/.test(urlFilter)

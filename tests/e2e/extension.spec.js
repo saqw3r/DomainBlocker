@@ -1,4 +1,4 @@
-const { test, expect, chromium } = require('@playwright/test');
+const { test: baseTest, expect, chromium } = require('@playwright/test');
 const path = require('path');
 
 // Path to the extension root (contains manifest.json)
@@ -7,6 +7,17 @@ const EXTENSION_PATH = path.resolve(__dirname, '../..');
 let context;
 let serviceWorker;
 let extensionId;
+
+// Extensions only load in the persistent context we launch in beforeAll, so the
+// default `page` fixture (which uses the runner's own context) cannot open
+// chrome-extension:// URLs. Override it to spawn pages from our context instead.
+const test = baseTest.extend({
+  page: async ({}, use) => {
+    const page = await context.newPage();
+    await use(page);
+    await page.close();
+  },
+});
 
 const POPUP_URL = () => `chrome-extension://${extensionId}/popup.html`;
 
@@ -51,6 +62,24 @@ async function openPopup(page) {
   await page.goto(POPUP_URL());
   await page.waitForSelector('.status-text');
   return page;
+}
+
+// The background applies rules asynchronously (the message handler does not
+// await enableBlocker/updateBlockerRules), so wait until the expected rule is
+// actually installed before navigating.
+async function waitForRule(filter) {
+  await expect
+    .poll(async () => {
+      const rules = await getActiveRules();
+      return rules.map((r) => r.condition.urlFilter).includes(filter);
+    }, { timeout: 10_000 })
+    .toBe(true);
+}
+
+async function waitForNoRules() {
+  await expect
+    .poll(async () => (await getActiveRules()).length, { timeout: 10_000 })
+    .toBe(0);
 }
 
 // --- Boot --------------------------------------------------------------------
@@ -116,6 +145,7 @@ test('turning blocker ON creates rules and flips the UI', async ({ page }) => {
   const storage = await getStorage();
   expect(storage.blockerState).toBe('on');
 
+  await waitForRule('||restricted.com^');
   const rules = await getActiveRules();
   expect(rules.map((r) => r.condition.urlFilter)).toContain('||restricted.com^');
 });
@@ -138,8 +168,7 @@ test('turning blocker OFF clears rules and flips the UI back', async ({ page }) 
   const storage = await getStorage();
   expect(storage.blockerState).toBe('off');
 
-  const rules = await getActiveRules();
-  expect(rules).toHaveLength(0);
+  await waitForNoRules();
 });
 
 // Flow (U -> Z): state self-heal -- storage says ON, but all rules are gone.
@@ -168,10 +197,11 @@ test('storage ON plus active rules keeps the blocker ON after reopen', async ({ 
   await first.locator('#onButton').click();
   await expect(first.locator('#offButton')).toBeVisible();
 
+  await waitForRule('||suffix^');
   const rules = await getActiveRules();
-  // TLD suffix -> urlFilter '||.suffix' WITHOUT the trailing '^'.
-  expect(rules.map((r) => r.condition.urlFilter)).toContain('||.suffix');
-  expect(rules.map((r) => r.condition.urlFilter)).not.toContain('||.suffix^');
+  // TLD suffix -> urlFilter '||suffix^' (leading dot stripped, ^ separator added).
+  expect(rules.map((r) => r.condition.urlFilter)).toContain('||suffix^');
+  expect(rules.map((r) => r.condition.urlFilter)).not.toContain('||.suffix');
 
   // Reopening shows blocker ON.
   const second = await openPopup(page);
@@ -210,6 +240,7 @@ test('editing the domain list while blocker is ON updates rules atomically', asy
   // Blocker should stay ON and the rules should now reflect only new.com.
   await expect(popup.locator('#offButton')).toBeVisible();
 
+  await waitForRule('||new.com^');
   const rules = await getActiveRules();
   const filters = rules.map((r) => r.condition.urlFilter);
   expect(filters).toContain('||new.com^');
@@ -226,6 +257,7 @@ test('browsing to a blocked domain redirects to blocked.html', async ({ page }) 
   const popup = await openPopup(page);
   await popup.locator('#onButton').click();
   await expect(popup.locator('#offButton')).toBeVisible();
+  await waitForRule('||restricted.com^');
 
   // Navigating to the blocked host must be redirected to the extension page.
   await page.goto('http://restricted.com/');
@@ -242,6 +274,7 @@ test('browsing to a subdomain under a blocked TLD-suffix redirects', async ({ pa
   const popup = await openPopup(page);
   await popup.locator('#onButton').click();
   await expect(popup.locator('#offButton')).toBeVisible();
+  await waitForRule('||io^');
 
   await page.goto('https://sub.example.io/anything');
   await page.waitForURL(/(blocked\.html)/, { timeout: 15_000 });

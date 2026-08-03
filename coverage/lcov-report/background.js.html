@@ -366,7 +366,17 @@
 <a name='L301'></a><a href='#L301'>301</a>
 <a name='L302'></a><a href='#L302'>302</a>
 <a name='L303'></a><a href='#L303'>303</a>
-<a name='L304'></a><a href='#L304'>304</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -475,14 +485,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">24x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -496,6 +508,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -662,9 +682,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">41x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">37x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">31x</span>
@@ -777,9 +797,11 @@ function applyRules() {
 &nbsp;
 function createRules(domains) {
     return domains.map(domain =&gt; {
-        // Support TLD suffix wildcards: .suffix -&gt; ||.suffix matches all *.suffix domains
+        // Support TLD suffix wildcards: .suffix -&gt; ||suffix^ matches all *.suffix domains.
+        // '||.suffix' (leading dot) does NOT match in Chromium DNR, because the dot is not
+        // a domain boundary -- so strip it and rely on the ^ separator instead.
         const urlFilter = domain.startsWith('.')
-            ? `||${domain}`  // .ru -&gt; ||.ru (matches all *.ru)
+            ? `||${domain.slice(1)}^`  // .ru -&gt; ||ru^ (matches all *.ru)
             : `||${domain}^`; // example.com -&gt; ||example.com^ (matches example.com and subdomains)
         // Convert IDN domains to punycode for urlFilter
         const filterValue = /[^\x00-\x7F]/.test(urlFilter)
@@ -802,6 +824,14 @@ function createRules(domains) {
             id: nextRuleId++,
             priority: 1,
             action: {
+                type: "redirect",
+                redirect: {
+                    extensionPath: `/blocked.html?blockedUrl=${encodeURIComponent(domain)}`
+                }
+            },
+            condition: {
+                urlFilter: filterValue,
+                resourceTypes: ["main_frame"]
             }
         };
         console.log('Created rule:', JSON.stringify(rule, null, 2));
@@ -979,7 +1009,7 @@ chrome.system.display.onDisplayChanged.addListener(<span class="fstat-no" title=
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-13T10:16:53.357Z
+                at 2026-08-03T10:57:43.384Z
             </div>
         <script src="prettify.js"></script>
         <script>
