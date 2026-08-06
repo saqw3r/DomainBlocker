@@ -76,10 +76,44 @@
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
       background-color: #FFE135;
     }
-
     .bmc-btn:active {
       transform: translateY(0);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .actions {
+      margin: 20px 0;
+    }
+
+    .allow-btn {
+      padding: 12px 32px;
+      background-color: #28a745;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .allow-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      background-color: #218838;
+    }
+
+    .allow-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .allow-btn:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
   </style>
 </head>
@@ -91,6 +125,10 @@
   </div>
 
   <img id="funny-image" alt="Blocked">
+
+  <div class="actions">
+    <button id="allow-btn" class="allow-btn">Allow this time</button>
+  </div>
 
   <a href="https://buymeacoffee.com/saqw3r" target="_blank" class="bmc-btn">
     &#9749; Buy me a coffee

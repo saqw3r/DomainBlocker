@@ -10,6 +10,115 @@ function logExistingRules() {
 let isBlockerOn = false;
 let currentRuleIds = [];
 let nextRuleId = 1;
+// Cached blocked domains for synchronous lookup in webNavigation listener
+let cachedBlockedDomains = [];
+
+// Update cached blocked domains
+function updateCachedBlockedDomains(domains) {
+    cachedBlockedDomains = domains || [];
+    console.log('Updated cached blocked domains:', cachedBlockedDomains);
+}
+
+// Track original URLs for blocked domains (for "allow this time" feature).
+// Persisted to storage.local: MV3 service workers are recreated on extension
+// reload and after suspension, which would otherwise wipe in-memory state and
+// break "Allow this time" for blocked pages already open.
+const pendingUrls = new Map(); // tabId -> { url, domain, timestamp }
+const PENDING_URL_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Persist the pending URLs map to storage.local
+function persistPendingUrls() {
+    const pendingObj = {};
+    for (const [tabId, data] of pendingUrls.entries()) {
+        pendingObj[tabId] = data;
+    }
+    chrome.storage.local.set({ pendingUrls: pendingObj });
+}
+
+// Remove expired entries and persist if anything changed
+function cleanupExpiredPendingUrls() {
+    const now = Date.now();
+    let changed = false;
+    for (const [tabId, data] of pendingUrls.entries()) {
+        if (now - data.timestamp > PENDING_URL_TTL) {
+            pendingUrls.delete(tabId);
+            changed = true;
+        }
+    }
+    if (changed) {
+        persistPendingUrls();
+    }
+}
+
+// Clean up expired pending URLs periodically
+setInterval(cleanupExpiredPendingUrls, 60000);
+
+// Load persisted pending URLs into memory (called at service worker startup)
+function loadPendingUrlsFromStorage() {
+    chrome.storage.local.get('pendingUrls', (data) => {
+        const saved = data.pendingUrls || {};
+        const now = Date.now();
+        let changed = false;
+        for (const [tabIdStr, entry] of Object.entries(saved)) {
+            if (now - entry.timestamp <= PENDING_URL_TTL) {
+                pendingUrls.set(Number(tabIdStr), entry);
+            } else {
+                changed = true;
+            }
+        }
+        if (changed) {
+            persistPendingUrls();
+        }
+        console.log('Loaded pending URLs from storage:', pendingUrls.size);
+    });
+}
+
+// Helper: check whether a hostname matches the blocked domains list
+function isDomainBlocked(domain, domains) {
+    return domains.some(blockedDomain => {
+        if (blockedDomain.startsWith('.')) {
+            // TLD wildcard: .ru matches *.ru
+            return domain.endsWith(blockedDomain.slice(1)) || domain === blockedDomain.slice(1);
+        }
+        // Exact domain or subdomain match
+        return domain === blockedDomain || domain.endsWith('.' + blockedDomain);
+    });
+}
+
+// Record the original URL of a navigation that is about to be blocked.
+// Runs on every main-frame navigation; records when the domain is in the
+// blocked list (unused entries simply expire). Uses the in-memory cache when
+// warm, falls back to storage on cold start (service worker just restarted).
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+    if (details.frameId !== 0) return; // Only main frame
+    const url = details.url;
+    try {
+        const urlObj = new URL(url);
+        const domain = urlObj.hostname;
+        const record = (domains) => {
+            if (isDomainBlocked(domain, domains)) {
+                pendingUrls.set(details.tabId, { url, domain, timestamp: Date.now() });
+                persistPendingUrls();
+                console.log('Captured pending URL for tab', details.tabId, ':', url);
+            }
+        };
+        if (cachedBlockedDomains.length > 0) {
+            record(cachedBlockedDomains);
+        } else {
+            // Cold start: cache not populated yet, read from storage
+            chrome.storage.local.get('blacklistedDomains', (data) => {
+                const domains = data.blacklistedDomains || [];
+                updateCachedBlockedDomains(domains);
+                record(domains);
+            });
+        }
+    } catch (e) {
+        // Invalid URL, ignore
+    }
+});
+
+// Load persisted pending URLs on service worker startup
+loadPendingUrlsFromStorage();
 
 // Function to get all existing rule IDs and update nextRuleId
 function updateNextRuleId() {
@@ -57,6 +166,7 @@ function disableBlocker() {
             } else {
                 isBlockerOn = false;
                 currentRuleIds = [];
+                updateCachedBlockedDomains([]);
                 chrome.storage.local.set({ blockerState: 'off' }, () => {
                     console.log('Blocker disabled, all rules removed');
                 });
@@ -78,6 +188,7 @@ function applyRules() {
         chrome.storage.local.get('blacklistedDomains', (data) => {
             const domains = data.blacklistedDomains || [];
             console.log('applyRules: domains from storage:', domains);
+            updateCachedBlockedDomains(domains);
             const rules = createRules(domains);
             console.log('Enabling blocker with rules:', rules);
 
@@ -150,6 +261,7 @@ function createRules(domains) {
 
 // Function to update blocker rules
 function updateBlockerRules(domains) {
+    updateCachedBlockedDomains(domains);
     return updateNextRuleId().then(() => {
         const rules = createRules(domains);
 
@@ -217,6 +329,8 @@ function restoreBlockerState() {
             } else {
                 // State matches reality - sync memory and do nothing
                 isBlockerOn = storedState && hasActiveRules;
+                // Update cached domains from storage
+                updateCachedBlockedDomains(data.blacklistedDomains || []);
                 console.log('restoreBlockerState: state consistent, skipping');
             }
         });
@@ -271,7 +385,94 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             sendResponse({ success: true });
         });
-        return true;
+    } else if (message.action === 'allowThisTime') {
+        console.log('allowThisTime message received:', message);
+        const tabId = sender.tab?.id;
+        if (!tabId) {
+            sendResponse({ success: false, error: 'Could not determine tab ID' });
+            return true;
+        }
+
+        const processPending = (pending) => {
+            if (!pending) {
+                console.error('allowThisTime: no pending URL for tab', tabId);
+                sendResponse({ success: false, error: 'No pending URL for this tab' });
+                return;
+            }
+            const url = pending.url;
+
+            // Remove from pending and persist
+            pendingUrls.delete(tabId);
+            persistPendingUrls();
+
+            // Recompute nextRuleId from live rules: after a service worker
+            // restart the counter resets while existing block rules keep their
+            // IDs, and adding a rule with a duplicate ID would fail.
+            updateNextRuleId().then(() => {
+                // Add a temporary allow rule for this domain with high priority.
+                // Matches the whole domain (not the exact URL): Chrome's HTTPS
+                // upgrade rewrites http:// URLs to https:// before DNR evaluates
+                // them, so a scheme-specific filter would never match.
+                const allowRuleId = nextRuleId++;
+                const allowRule = {
+                    id: allowRuleId,
+                    priority: 100, // Higher priority than block rules (priority 1)
+                    action: { type: 'allow' },
+                    condition: {
+                        urlFilter: `||${pending.domain}^`,
+                        resourceTypes: ['main_frame']
+                    }
+                };
+
+                chrome.declarativeNetRequest.updateDynamicRules({
+                    addRules: [allowRule]
+                }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error adding allow rule:', chrome.runtime.lastError);
+                        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                    } else {
+                        console.log('Added temporary allow rule:', allowRule);
+                        // Schedule removal of the allow rule after a short delay
+                        setTimeout(() => {
+                            chrome.declarativeNetRequest.updateDynamicRules({
+                                removeRuleIds: [allowRuleId]
+                            }, () => {
+                                console.log('Removed temporary allow rule:', allowRuleId);
+                            });
+                        }, 5000); // Remove after 5 seconds
+
+                        // Redirect the tab to the original URL
+                        chrome.tabs.update(tabId, { url: url }, () => {
+                            if (chrome.runtime.lastError) {
+                                console.error('Error redirecting tab:', chrome.runtime.lastError);
+                                sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                            } else {
+                                sendResponse({ success: true });
+                            }
+                        });
+                    }
+                });
+            });
+        };
+
+        // Prefer the in-memory map; fall back to storage in case the service
+        // worker restarted (extension reload or suspension) since the blocked
+        // page was shown.
+        const pending = pendingUrls.get(tabId);
+        if (pending) {
+            processPending(pending);
+        } else {
+            chrome.storage.local.get('pendingUrls', (data) => {
+                const saved = data.pendingUrls || {};
+                const entry = saved[String(tabId)];
+                if (entry && Date.now() - entry.timestamp <= PENDING_URL_TTL) {
+                    processPending(entry);
+                } else {
+                    processPending(null);
+                }
+            });
+        }
+        return true; // Async response
     }
     return true;
 });
@@ -304,6 +505,9 @@ if (typeof module !== 'undefined' && module.exports) {
         updateBlockerRules,
         clearExistingRules,
         restoreBlockerState,
+        persistPendingUrls,
+        cleanupExpiredPendingUrls,
+        loadPendingUrlsFromStorage,
         get isBlockerOn() { return isBlockerOn; },
         set isBlockerOn(v) { isBlockerOn = v; },
         get currentRuleIds() { return currentRuleIds; },

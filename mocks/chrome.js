@@ -51,11 +51,17 @@ const chrome = {
       }
     }
   },
-
   idle: {
     onStateChanged: { 
       addListener: jest.fn() 
     } 
+  },
+
+  // Web Navigation API mock
+  webNavigation: {
+    onBeforeNavigate: {
+      addListener: jest.fn()
+    }
   }
 };
 

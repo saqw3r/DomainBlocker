@@ -7,7 +7,8 @@
     "declarativeNetRequest",
     "storage",
     "idle",
-    "system.display"
+    "system.display",
+    "webNavigation"
   ],
   "background": {
     "service_worker": "background.js"

@@ -297,3 +297,58 @@ test('an unlisted domain is allowed to load', async ({ page }) => {
   expect(response.status()).toBe(200);
   expect(page.url()).toContain('https://example.com/');
 });
+
+// "Allow this time" happy path: the blocked page offers a way through to the
+// original destination.
+test('allow this time redirects to the original URL', async ({ page }) => {
+  await setStorage({ blacklistedDomains: ['restricted.com'] });
+
+  const popup = await openPopup(page);
+  await popup.locator('#onButton').click();
+  await expect(popup.locator('#offButton')).toBeVisible();
+  await waitForRule('||restricted.com^');
+
+  await page.goto('http://restricted.com/');
+  await page.waitForURL(/(blocked\.html)/, { timeout: 15_000 });
+  await expect(page.locator('#allow-btn')).toBeVisible();
+
+  // Clicking the button must take us to the destination, not stay blocked.
+  // The exact URL may be HTTPS-upgraded and server-redirected, so assert we
+  // left the blocked page.
+  await page.locator('#allow-btn').click();
+  await page.waitForFunction(() => !/blocked\.html/.test(location.href), undefined, {
+    timeout: 15_000,
+  });
+});
+
+// Bug repro: the service worker restarted (extension reload / MV3 suspension)
+// while the blocked page was open. The worker comes back with empty in-memory
+// state; the pending URL must survive via storage.local so "Allow this time"
+// still works.
+test('allow this time still works after the service worker restarts', async ({ page }) => {
+  await setStorage({ blacklistedDomains: ['restricted.com'] });
+
+  const popup = await openPopup(page);
+  await popup.locator('#onButton').click();
+  await expect(popup.locator('#offButton')).toBeVisible();
+  await waitForRule('||restricted.com^');
+
+  await page.goto('http://restricted.com/');
+  await page.waitForURL(/(blocked\.html)/, { timeout: 15_000 });
+  await expect(page.locator('#allow-btn')).toBeVisible();
+
+  // Terminate the service worker (in-memory pendingUrls are wiped, exactly as
+  // after an extension reload). It restarts on the next message.
+  const cdp = await context.newCDPSession(page);
+  const { targetInfos } = await cdp.send('Target.getTargets');
+  const swTarget = targetInfos.find(
+    (t) => t.type === 'service_worker' && t.url.includes(extensionId)
+  );
+  await cdp.send('Target.closeTarget', { targetId: swTarget.targetId });
+
+  // The pending URL persisted; clicking allow still redirects to the destination.
+  await page.locator('#allow-btn').click();
+  await page.waitForFunction(() => !/blocked\.html/.test(location.href), {
+    timeout: 15_000,
+  });
+});

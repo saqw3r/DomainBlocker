@@ -42,3 +42,29 @@ const imgElement = document.getElementById('funny-image');
 if (imgElement) {
     imgElement.src = getRandomImage();
 }
+
+// Handle "Allow this time" button
+const allowBtn = document.getElementById('allow-btn');
+if (allowBtn) {
+    allowBtn.addEventListener('click', () => {
+        allowBtn.disabled = true;
+        allowBtn.textContent = 'Redirecting...';
+        
+        // Send message to background script to allow this URL
+        // The background will use sender.tab to get the tabId
+        chrome.runtime.sendMessage({
+            action: 'allowThisTime',
+            // We don't have the full URL here, but background has it stored by tabId
+        }, (response) => {
+            if (response && response.success) {
+                // Background will handle the redirect
+                console.log('Allow this time successful');
+            } else {
+                console.error('Allow this time failed:', response?.error);
+                allowBtn.disabled = false;
+                allowBtn.textContent = 'Allow this time';
+                alert('Failed to allow: ' + (response?.error || 'Unknown error'));
+            }
+        });
+    });
+}
